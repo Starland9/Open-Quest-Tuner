@@ -664,9 +664,18 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
 - [X] T057 [US2] Brancher la route `Screen.Profile` dans
   `app/src/main/java/io/github/openquesttuner/ui/OqtApp.kt`, et ajouter toutes les chaînes de l'US2
   dans `app/src/main/res/values/strings.xml` **et** `app/src/main/res/values-fr/strings.xml`.
-- [ ] T058 [US2] Lancer `./gradlew test assembleDebug`, installer, puis dérouler les scénarios 2.1
+- [X] T058 [US2] Lancer `./gradlew test assembleDebug`, installer, puis dérouler les scénarios 2.1
   à 2.8 de [quickstart.md](quickstart.md). Consigner chaque essai de propriété dans le journal de
   `docs/compatibility.md`.
+  - **Validé le 2026-09-23 (Quest 3, vros 207)**, jeu de référence Beat Saber 1.44.3 :
+    - ✅ 2.1, 2.2, 2.7, 2.8 : confirmés dans le casque par l'utilisateur ;
+    - ✅ 2.3 et 2.4 : les 7 valeurs sont visibles dans `getprop`, et la séquence complète prend
+      221 ms (SC-003) ;
+    - ✅ 2.5 : effet mesuré dans les statistiques VrApi pour 6 propriétés sur 7 (le fovéal
+      dynamique n'y apparaît pas), qui passent en « vérifié » pour le Quest 3 dans `QuestModel` ;
+    - ✅ 2.6 : confirmé par l'utilisateur ;
+    - ✅ second jeu : Hunting VR (Unity), profil appliqué à l'identique ;
+    - 2.9 (SC-002, chronométrage) : reporté à la validation finale, comme 1.6.
 
 **Checkpoint**: premier incrément utilisable. Le MVP est complet après l'US4 (phase 5), qui
 ajoute l'annulation en un geste exigée par le principe I.
@@ -683,7 +692,7 @@ Cette story fait partie du MVP : c'est le filet de sécurité exigé par la cons
 
 ### Tests for User Story 4
 
-- [ ] T059 [US4] Écrire `app/src/test/java/io/github/openquesttuner/core/TunerResetTest.kt` avec
+- [X] T059 [US4] Écrire `app/src/test/java/io/github/openquesttuner/core/TunerResetTest.kt` avec
   `FakeShellBackend` :
   - `resetAll()` exécute `resetProperty` pour les 7 propriétés, **même si** l'une échoue ;
   - le résultat est `ResetResult(failed = [propriétés en échec])` ;
@@ -691,17 +700,25 @@ Cette story fait partie du MVP : c'est le filet de sécurité exigé par la cons
 
 ### Implementation for User Story 4
 
-- [ ] T060 [US4] Ajouter `suspend fun resetAll(): ResetResult?` à
+- [X] T060 [US4] Ajouter `suspend fun resetAll(): ResetResult?` à
   `app/src/main/java/io/github/openquesttuner/core/Tuner.kt`. Il renvoie `null` si l'appli n'est
   pas connectée. Faire passer T059.
-- [ ] T061 [US4] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter
+- [X] T061 [US4] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter
   `resetAll()`, avec un message de succès ou la liste des propriétés en échec.
-- [ ] T062 [US4] Dans `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt`, ajouter
+- [X] T062 [US4] Dans `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt`, ajouter
   une carte « Outils » avec le bouton « Tout réinitialiser ». Hors connexion, il est désactivé
   avec le rappel : « un redémarrage du casque efface aussi tous les réglages ».
 - [ ] T063 [US4] Ajouter les chaînes de l'US4 dans `app/src/main/res/values/strings.xml` **et**
   `app/src/main/res/values-fr/strings.xml`, lancer `./gradlew test assembleDebug`, puis dérouler
   le scénario 4.1 de [quickstart.md](quickstart.md).
+  - ❌ 4.1, premier essai du 2026-09-23 (Quest 3, vros 207) : « Tout réinitialiser » déconnecte
+    l'appli. D'après les journaux, une commande est restée 15 s sans réponse, puis la connexion a
+    été déclarée perdue. Le même blocage avait aussi interrompu un « Appliquer et lancer » (jeu
+    arrêté, jamais relancé). Cause : deux réveils perdus dans libadb 3.1.1 (research.md R3).
+  - Correctif (contracts/shell-backend.md amendé) : lecture arrêtée au marqueur de fin
+    (`ShellOutput.isComplete`), délai de 3 s par commande et 3 essais sur la même connexion
+    (`ConnectionPolicy.withRetries`). 7 tests JVM ajoutés, 109 au total. À revalider sur
+    casque.
 
 **Checkpoint**: MVP complet. On se connecte, on règle et on lance un jeu, et on annule tout
 en un geste (principe I).

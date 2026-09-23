@@ -160,6 +160,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // --- Réinitialisation (US4)
+
+    private val _resetting = MutableStateFlow(false)
+    val resetting: StateFlow<Boolean> = _resetting.asStateFlow()
+
+    /** « Tout réinitialiser » (FR-023) : confirme le résultat, ou nomme les réglages en échec. */
+    fun resetAll() {
+        if (_resetting.value) return
+        _resetting.value = true
+        viewModelScope.launch {
+            try {
+                val result = container.tuner.resetAll()
+                when {
+                    result == null -> showMessage(R.string.tune_not_connected)
+                    result.failed.isEmpty() -> showMessage(R.string.reset_success)
+                    else -> showMessage(
+                        R.string.reset_partial,
+                        result.failed.map { text(it.labelRes()) }.distinct().joinToString(),
+                    )
+                }
+            } finally {
+                _resetting.value = false
+            }
+        }
+    }
+
     private suspend fun persist(packageName: String, profile: GameProfile): Boolean = try {
         container.profileStore.save(packageName, profile)
         true

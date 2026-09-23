@@ -41,6 +41,9 @@ object ConnectionPolicy {
     /** Nouvelles tentatives après un probe raté (libadb-android #34, research.md R3). */
     const val MAX_PROBE_RETRIES = 2
 
+    /** Essais d'une même commande sur la même connexion avant de la déclarer perdue. */
+    const val MAX_EXEC_ATTEMPTS = 3
+
     const val WIRELESS_ACCEPT_TIMEOUT_MS = 60_000L
     const val WIRELESS_POLL_MS = 1_000L
 
@@ -109,6 +112,27 @@ object ConnectionPolicy {
         while (!readSafely(read)) delay(pollMs)
         true
     } ?: false
+
+    /**
+     * Rejoue [attempt] tant qu'il échoue côté transport, au plus [maxAttempts] fois. Un résultat
+     * obtenu, même avec un code de sortie non nul, n'est jamais rejoué.
+     *
+     * libadb-android 3.1.1 perd parfois la réponse à l'ouverture d'un flux (research.md R3) : la
+     * commande a pu s'exécuter sans qu'on en connaisse le résultat. Toutes les commandes de la liste
+     * fermée sont idempotentes, on peut donc la relancer sans risque.
+     */
+    suspend fun <T> withRetries(
+        maxAttempts: Int = MAX_EXEC_ATTEMPTS,
+        attempt: suspend (number: Int) -> Result<T>,
+    ): Result<T> {
+        var result = attempt(1)
+        var number = 1
+        while (result.isFailure && number < maxAttempts) {
+            number++
+            result = attempt(number)
+        }
+        return result
+    }
 
     private suspend fun readSafely(read: suspend () -> Boolean): Boolean = try {
         read()

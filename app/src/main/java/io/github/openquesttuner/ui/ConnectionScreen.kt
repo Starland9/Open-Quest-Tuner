@@ -66,6 +66,8 @@ fun ConnectionScreen(
     onDeveloperOptionsUnavailable: () -> Unit,
     switchingToWireless: Boolean,
     onSwitchToWireless: () -> Unit,
+    resetting: Boolean,
+    onResetAll: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -88,6 +90,7 @@ fun ConnectionScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 StatusCard(state, onDisconnect, switchingToWireless, onSwitchToWireless)
+                ToolsCard(connected = state is ConnectionState.Connected, resetting = resetting, onResetAll = onResetAll)
                 // Première connexion via PC (une seule fois), puis « Passer en sans fil » ;
                 // l'appairage par code n'est qu'un secours (spec US1, amendée le 2026-09-23).
                 PcCard(busy = state.isBusy || switchingToWireless, onConnectPc = onConnectPc)
@@ -146,6 +149,32 @@ private fun StatusCard(
             ) {
                 Text(stringResource(R.string.disconnect))
             }
+        }
+    }
+}
+
+/** Filet de sécurité du principe I : annuler tous les réglages en un geste (US4). */
+@Composable
+private fun ToolsCard(connected: Boolean, resetting: Boolean, onResetAll: () -> Unit) {
+    SectionCard(title = stringResource(R.string.tools_title)) {
+        Text(stringResource(R.string.reset_all_hint), style = MaterialTheme.typography.bodyMedium)
+        Button(
+            onClick = onResetAll,
+            enabled = connected && !resetting,
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) {
+            if (resetting) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Text(stringResource(R.string.reset_all))
+            }
+        }
+        if (!connected) {
+            Text(
+                stringResource(R.string.reset_all_disconnected),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

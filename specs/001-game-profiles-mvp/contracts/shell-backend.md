@@ -83,10 +83,17 @@ Règles d'implémentation, reprises des pièges constatés dans libadb-android 3
 - La lecture d'un `AdbStream` peut lever `IOException("Stream closed.")` après la dernière donnée.
   C'est une fin de flux normale dès lors que des données ont été reçues.
 - Les opérations de connexion sont sérialisées par un `Mutex` et exécutées sur `Dispatchers.IO`.
-- **Délais maximaux** : libadb peut bloquer indéfiniment si adbd ne répond pas sur un flux (constaté
+- **Délais maximaux** : libadb peut bloquer indéfiniment, soit parce que la réponse à l'ouverture
+  d'un flux lui échappe (réveil perdu, research.md R3), soit parce qu'adbd ne répond pas (constaté
   sur Quest 3 après un redémarrage). Chaque exécution passe par `withTimeoutOrNull` et
-  `runInterruptible` : 2 s pour le probe, 15 s pour une commande. Un délai dépassé pendant `exec`
-  vaut connexion perdue.
+  `runInterruptible` : 2 s pour le probe, 3 s pour une commande.
+- **Essais d'une commande** (amendé le 2026-09-23) : une commande sans réponse est rejouée sur la
+  même connexion, jusqu'à 3 essais au total (`ConnectionPolicy.withRetries`). La connexion n'est
+  déclarée perdue qu'après 3 échecs consécutifs. Toutes les commandes C1 à C8 sont idempotentes :
+  les rejouer est sans effet de bord.
+- **Fin de lecture** : la lecture d'une sortie s'arrête dès la ligne complète du marqueur
+  `__OQT_EXIT__:<code>`, toujours imprimée en dernier (`ShellOutput.isComplete`), sans attendre la
+  fermeture du flux.
 - **Vérification après connexion** (libadb-android #34, research.md R3) : dès que `connect()`
   renvoie `true`, exécuter C6 `probe()`. S'il échoue, appeler `disconnect()` et refaire la
   connexion, au maximum 2 nouvelles tentatives. L'état ne passe à `Connected` qu'après un

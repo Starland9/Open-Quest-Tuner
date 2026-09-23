@@ -43,6 +43,7 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
             val loadingGames by vm.loadingGames.collectAsState()
             val profiles by vm.profiles.collectAsState()
             val tuning by vm.tuning.collectAsState()
+            val resetting by vm.resetting.collectAsState()
             when (val screen = backStack.last()) {
                 Screen.Games -> GamesScreen(
                     games = games,
@@ -66,6 +67,8 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                     onDeveloperOptionsUnavailable = { vm.showMessage(R.string.open_dev_options_failed) },
                     switchingToWireless = switchingToWireless,
                     onSwitchToWireless = vm::switchToWireless,
+                    resetting = resetting,
+                    onResetAll = vm::resetAll,
                 )
                 is Screen.Profile -> {
                     // Le ViewModel retire l'écran si le jeu disparaît de la liste (désinstallation).

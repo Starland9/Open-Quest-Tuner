@@ -93,4 +93,28 @@ class ShellOutputTest {
         )
         assertFalse(ShellOutput.isLaunchError("Starting: Intent { cmp=com.a/.Main }"))
     }
+
+    // --- isComplete : la ligne du marqueur, toujours la dernière, suffit à terminer la lecture
+
+    @Test
+    fun `sortie complete des que la ligne du marqueur est terminee`() {
+        assertTrue(ShellOutput.isComplete("__OQT_EXIT__:0\n"))
+        assertTrue(ShellOutput.isComplete("[debug.oculus.cpuLevel]: [4]\n__OQT_EXIT__:0\n"))
+        assertTrue(ShellOutput.isComplete("Error: boom\r\n__OQT_EXIT__:255\r\n"))
+    }
+
+    @Test
+    fun `sortie incomplete tant que le marqueur n'est pas arrive en entier`() {
+        assertFalse(ShellOutput.isComplete(""))
+        assertFalse(ShellOutput.isComplete("[debug.oculus.cpuLevel]: [4]\n"))
+        assertFalse(ShellOutput.isComplete("__OQT_EXIT__:"))
+        // Le code 12 peut arriver en deux morceaux : il faut attendre la fin de ligne.
+        assertFalse(ShellOutput.isComplete("__OQT_EXIT__:1"))
+        assertFalse(ShellOutput.isComplete("__OQT_EXIT__:\n"))
+    }
+
+    @Test
+    fun `un marqueur suivi d'autres lignes n'est pas la fin`() {
+        assertFalse(ShellOutput.isComplete("__OQT_EXIT__:0\nsuite\n"))
+    }
 }

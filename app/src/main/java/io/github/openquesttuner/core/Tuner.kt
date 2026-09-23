@@ -13,6 +13,9 @@ sealed interface TuneStep {
     data object Launch : TuneStep
 }
 
+/** Résultat de « Tout réinitialiser » ; une liste vide signifie un succès complet. */
+data class ResetResult(val failed: List<QuestProperty>)
+
 /** Séquences de commandes de contracts/shell-commands.md, sur un [ShellBackend] quelconque. */
 class Tuner(private val shell: ShellBackend, private val model: QuestModel) {
 
@@ -51,5 +54,20 @@ class Tuner(private val shell: ShellBackend, private val model: QuestModel) {
         } catch (e: ShellUnavailableException) {
             TuneResult.NotConnected
         }
+    }
+
+    /**
+     * « Tout réinitialiser » (FR-023) : remet les 7 propriétés à vide. Toutes sont tentées même
+     * si l'une échoue, pour ne jamais laisser plus de réglages actifs que nécessaire (principe I).
+     *
+     * @return `null` si l'appli n'est pas connectée, ou si la connexion est perdue en cours de route.
+     */
+    suspend fun resetAll(): ResetResult? = try {
+        val failed = QuestProperty.entries.filterNot { property ->
+            shell.exec(ShellCommand.resetProperty(property)).isSuccess
+        }
+        ResetResult(failed)
+    } catch (e: ShellUnavailableException) {
+        null
     }
 }

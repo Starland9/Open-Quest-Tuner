@@ -200,4 +200,48 @@ class ConnectionPolicyTest {
     fun `aucune methode connue, aucune tentative`() {
         assertEquals(emptyList<ReconnectAttempt>(), ConnectionPolicy.reconnectAttempts(null, 37000))
     }
+
+    // --- withRetries : réponses perdues par libadb (research.md R3)
+
+    @Test
+    fun `une reussite au premier essai ne rejoue rien`() = runTest {
+        val attempts = mutableListOf<Int>()
+        val result = ConnectionPolicy.withRetries { attempt -> attempts += attempt; Result.success("ok") }
+
+        assertEquals(Result.success("ok"), result)
+        assertEquals(listOf(1), attempts)
+    }
+
+    @Test
+    fun `deux echecs de transport puis une reussite`() = runTest {
+        val attempts = mutableListOf<Int>()
+        val result = ConnectionPolicy.withRetries { attempt ->
+            attempts += attempt
+            if (attempt < 3) Result.failure(IOException("pas de réponse")) else Result.success("ok")
+        }
+
+        assertEquals(Result.success("ok"), result)
+        assertEquals(listOf(1, 2, 3), attempts)
+    }
+
+    @Test
+    fun `apres trois echecs le dernier echec est renvoye`() = runTest {
+        var attempts = 0
+        val result = ConnectionPolicy.withRetries<String> { attempt ->
+            attempts++
+            Result.failure(IOException("échec $attempt"))
+        }
+
+        assertEquals(ConnectionPolicy.MAX_EXEC_ATTEMPTS, attempts)
+        assertEquals("échec 3", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `un code de sortie non nul n'est pas rejoue`() = runTest {
+        var attempts = 0
+        val result = ConnectionPolicy.withRetries { attempts++; Result.success(ShellResult(exitCode = 1, output = "denied")) }
+
+        assertEquals(1, attempts)
+        assertEquals(ShellResult(exitCode = 1, output = "denied"), result.getOrNull())
+    }
 }

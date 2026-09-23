@@ -83,4 +83,11 @@
     <string name="tune_game_not_found">Jeu introuvable : il a peut-être été désinstallé. La liste a été actualisée.</string>
     <string name="tune_invalid_profile">Valeurs non prises en charge par ce casque : %1$s. Modifie le profil.</string>
     <string name="tune_not_connected">Connexion perdue : reconnecte l\'appli puis réessaie.</string>
+    <!-- US4 : tout réinitialiser -->
+    <string name="tools_title">Outils</string>
+    <string name="reset_all">Tout réinitialiser</string>
+    <string name="reset_all_hint">Remet les 7 réglages gérés par l\'appli à leur valeur par défaut, pour tous les jeux.</string>
+    <string name="reset_all_disconnected">Connecte l\'appli pour réinitialiser. Un redémarrage du casque efface aussi tous les réglages.</string>
+    <string name="reset_success">Tous les réglages sont revenus par défaut.</string>
+    <string name="reset_partial">Réinitialisation incomplète pour : %1$s. Réessaie, ou redémarre le casque.</string>
 </resources>

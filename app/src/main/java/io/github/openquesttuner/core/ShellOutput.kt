@@ -22,6 +22,18 @@ object ShellOutput {
         return ShellResult(code, text.substring(0, markerIndex).trimEnd())
     }
 
+    /**
+     * Vrai dès que la sortie se termine par la ligne complète du marqueur, toujours imprimée en
+     * dernier : la lecture peut s'arrêter là sans attendre la fermeture du flux, que libadb peut ne
+     * jamais signaler (research.md R3).
+     */
+    fun isComplete(raw: String): Boolean {
+        val text = raw.replace("\r", "")
+        if (!text.endsWith('\n')) return false
+        val lastLine = text.dropLast(1).substringAfterLast('\n')
+        return lastLine.startsWith(EXIT_MARKER) && lastLine.removePrefix(EXIT_MARKER).trim().toIntOrNull() != null
+    }
+
     /** Propriétés `debug.oculus.*` non vides d'une sortie `getprop`, triées par clé. */
     fun parseGetprop(output: String): Map<String, String> = output.lineSequence()
         .mapNotNull { GETPROP_LINE.matchEntire(it.trim()) }

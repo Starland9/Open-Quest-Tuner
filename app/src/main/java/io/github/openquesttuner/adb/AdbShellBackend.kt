@@ -130,7 +130,11 @@ class AdbShellBackend(
 
     override suspend fun exec(command: ShellCommand): ShellResult = withContext(Dispatchers.IO) {
         if (_state.value !is ConnectionState.Connected) throw ShellUnavailableException()
-        val result = runWithTimeout(EXEC_TIMEOUT_MS, command)
+        val result = ConnectionPolicy.withRetries { attempt ->
+            runWithTimeout(EXEC_TIMEOUT_MS, command).onFailure { error ->
+                Log.w(TAG, "Commande sans réponse, essai $attempt/${ConnectionPolicy.MAX_EXEC_ATTEMPTS} : ${error.javaClass.simpleName}")
+            }
+        }
         result.getOrElse { error ->
             Log.w(TAG, "Commande en échec, connexion considérée perdue : ${error.javaClass.simpleName}")
             connectionLost()
@@ -194,8 +198,9 @@ class AdbShellBackend(
     }
 
     /**
-     * libadb bloque sans limite si adbd ne répond pas sur un flux (constaté sur Quest 3 après un
-     * redémarrage) : le délai interrompt le thread bloqué, ce qui débloque ses `wait()` internes.
+     * libadb bloque sans limite si la réponse à l'ouverture d'un flux lui échappe (réveil perdu,
+     * research.md R3) ou si adbd ne répond pas : le délai interrompt le thread bloqué, ce qui
+     * débloque ses `wait()` internes.
      */
     private suspend fun runWithTimeout(timeoutMs: Long, command: ShellCommand): Result<ShellResult> =
         withTimeoutOrNull(timeoutMs) {
@@ -215,6 +220,9 @@ class AdbShellBackend(
                 val count = input.read(buffer)
                 if (count < 0) break
                 out.write(buffer, 0, count)
+                // Le marqueur de fin suffit : libadb peut ne jamais signaler la fermeture du flux
+                // quand elle arrive avant la lecture de la dernière donnée (research.md R3).
+                if (ShellOutput.isComplete(out.toString(Charsets.UTF_8.name()))) break
             }
         } catch (e: IOException) {
             // libadb signale parfois la fin du flux par « Stream closed. » après la dernière donnée.
@@ -242,7 +250,9 @@ class AdbShellBackend(
         const val LOCALHOST = "127.0.0.1"
         const val DISCOVERY_TIMEOUT_MS = 10_000L
         const val PROBE_TIMEOUT_MS = 2_000L
-        const val EXEC_TIMEOUT_MS = 15_000L
+        // Une commande de la liste fermée répond en quelques dizaines de ms : au-delà de 3 s, c'est
+        // une réponse perdue, rejouée par ConnectionPolicy.withRetries.
+        const val EXEC_TIMEOUT_MS = 3_000L
         const val READ_BUFFER_SIZE = 8 * 1024
     }
 }

@@ -84,4 +84,11 @@
     <string name="tune_game_not_found">Game not found: it may have been uninstalled. The list has been refreshed.</string>
     <string name="tune_invalid_profile">Values not supported by this headset: %1$s. Edit the profile.</string>
     <string name="tune_not_connected">Connection lost: reconnect the app and try again.</string>
+    <!-- US4 : tout réinitialiser -->
+    <string name="tools_title">Tools</string>
+    <string name="reset_all">Reset all</string>
+    <string name="reset_all_hint">Sets the 7 settings managed by the app back to their defaults, for every game.</string>
+    <string name="reset_all_disconnected">Connect the app to reset. A headset restart also clears every setting.</string>
+    <string name="reset_success">All settings are back to their defaults.</string>
+    <string name="reset_partial">Reset incomplete for: %1$s. Try again, or restart the headset.</string>
 </resources>

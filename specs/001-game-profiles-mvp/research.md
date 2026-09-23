@@ -111,6 +111,27 @@ bcpkix-jdk15to18 1.81.
     classique avec le service `tcpip:5555`, puis se connecter à `127.0.0.1:5555`. C'est la
     méthode de TheDroidGeek. Elle ouvre toutefois le port 5555 sur le réseau local ; à ne
     retenir qu'après vérification sur casque.
+- **Réveils perdus dans le code de libadb 3.1.1** (constaté sur Quest 3 le 2026-09-23, présent
+  aussi sur la branche `master` ; c'est très probablement la cause de #34) :
+  - **Ouverture de flux** : `AdbConnection.open()` envoie `OPEN`, *puis* entre dans
+    `synchronized (stream) { stream.wait(); }`, sans condition ni délai. Si adbd répond (`OKAY`,
+    voire `WRTE` et `CLSE` pour une commande courte) avant que le thread appelant n'atteigne
+    `wait()`, la notification est perdue et `open()` bloque indéfiniment. La commande a
+    pourtant été exécutée. En TLS sur 127.0.0.1, la réponse arrive assez vite pour que cela se
+    produise plusieurs fois par session.
+  - **Lecture** : si `CLSE` arrive alors que la dernière donnée n'a pas encore été lue,
+    `notifyClose` ne passe que `mPendingClose` à vrai. La boucle d'attente de `AdbStream.read()`
+    ne teste que `mIsClosed` : la lecture suivante attend indéfiniment.
+  - **Contournement** (contracts/shell-backend.md) :
+    - la lecture s'arrête dès la ligne complète du marqueur de fin (`ShellOutput.isComplete`),
+      sans attendre `CLSE` ;
+    - chaque commande a un délai de 3 s, puis jusqu'à 3 essais sur la même connexion
+      (`ConnectionPolicy.withRetries`) avant de déclarer la connexion perdue. C'est sans risque,
+      car toutes les commandes de la liste fermée sont idempotentes : `am start` sur un jeu déjà
+      lancé le ramène simplement au premier plan.
+  - **Correctif de fond** : attendre dans une boucle avec condition (`OKAY` reçu ou flux fermé),
+    et tenir compte de `mPendingClose` dans la boucle de lecture. À proposer en amont ; à défaut,
+    reprendre la bibliothèque dans le projet avec ce correctif (amendement du plan).
 - **#32** (août 2026) : le `SSLContext` est mis en cache statiquement et ignore un changement de
   paire de clés. **Sans impact** : l'appli génère une seule paire de clés et ne la renouvelle
   jamais. Une future fonction « réinitialiser l'identité » devra redémarrer le processus.
