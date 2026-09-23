@@ -144,7 +144,19 @@ bcpkix-jdk15to18 1.81.
 - Horizon OS a été renuméroté en 2.x en 2026 (`ro.vros.build.version`). La spec mentionne « v83 »
   comme constat historique ; le code ne doit jamais tester un numéro de version. [C]
 
-**Décisions** :
+**Amendement du 2026-09-23 (essai sur Quest 3, vros 207, voir docs/compatibility.md)** :
+- L'intent des options développeur ouvre les **Paramètres Quest**, qui n'ont pas de débogage sans
+  fil. L'écran développeur d'Android est désactivé, et le shell ne peut pas le réactiver.
+  L'appairage par code est donc inaccessible sur cette version.
+- En revanche, une clé autorisée une fois via la méthode PC est acceptée par adbd en **TLS sans
+  appairage**. `settings put global adb_wifi_enabled 1`, envoyé par le shell, déclenche la fenêtre
+  Horizon OS « autoriser sur ce réseau », puis active le sans-fil.
+- **Nouveau parcours retenu** : première autorisation via PC (une fois), puis bouton « Passer en
+  sans fil » (commandes C7 et C8). L'appairage par code est gardé en secours.
+- Après un redémarrage, le TLS est coupé mais le port 5555 est resté ouvert : la reconnexion
+  essaie les deux méthodes (`reconnectAttempts`).
+
+**Décisions initiales** (toujours valables pour l'appairage de secours) :
 - L'écran de connexion propose un bouton **« Ouvrir les options développeur »**. Il lance
   `Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS` avec
   `FLAG_ACTIVITY_NEW_DOCUMENT | FLAG_ACTIVITY_MULTIPLE_TASK`, pour ouvrir un panneau séparé à

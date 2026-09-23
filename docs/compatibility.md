@@ -23,7 +23,7 @@ Légende :
 | `debug.oculus.gpuLevel` | — | — | — | — | doc Meta, niveaux CPU/GPU (R2) |
 | `debug.oculus.foveation.level` | — | — | — | — | doc Meta, FFR (R1) |
 | `debug.oculus.foveation.dynamic` | — | — | — | — | doc Meta, FFR (R1) |
-| Réinitialisation `setprop <clé> ''` | — | — | — | — | doc Meta (R7) |
+| Réinitialisation `setprop <clé> ''` | ✅ | — | — | — | doc Meta (R7) |
 
 ## Journal des essais
 
@@ -32,7 +32,24 @@ Une ligne par essai. Pour les versions récentes, noter la version d'Horizon OS 
 
 | Date | Casque | Horizon OS | Jeu de référence | Propriété = valeur | Effet observé | Outil de mesure | Résultat |
 |---|---|---|---|---|---|---|---|
-| | | | | | | | |
+| 2026-09-23 | Quest 3 (`eureka`) | `ro.vros.build.version=207` (Android 14 / API 34, `UP1A.231005.007.A1`) | — | `debug.oculus.cpuLevel = 2` puis `''` | `setprop … ''` renvoie 0 et `getprop` renvoie une valeur vide. La clé reste listée avec `[]`, et `parseGetprop` l'ignore. | `adb shell` | ✅ contrat C2 confirmé |
+| 2026-09-23 | Quest 3 | vros 207 | — | `am force-stop` / `am start` avec `--user current` | Option documentée par `am help` pour les deux commandes. `am start --user current -n …` lance bien OpenQuestTuner. | `adb shell` | ✅ contrats C3 et C4 (syntaxe) |
+| 2026-09-23 | Quest 3 | vros 207 | — | Intent `ACTION_APPLICATION_DEVELOPMENT_SETTINGS` | Résolu par `com.oculus.vrshell/.intents.AndroidIntentsRelayActivity`. L'écran d'appairage direct (`ADB_WIRELESS_SETTINGS`) est introuvable. | `cmd package resolve-activity` | ⚠️ à confirmer visuellement (quickstart 1.1) |
+| 2026-09-23 | Quest 3 | vros 207 | — | Propriété système préexistante | `debug.oculus.extraKickoffHeadroom = 0.25e-3`, définie par le système, hors des propriétés gérées. Elle apparaîtra dans le diagnostic. | `getprop` | ℹ️ information |
+| 2026-09-23 | Quest 3 | vros 207 | — | Accès au débogage sans fil depuis le casque | Le bouton « Ouvrir les options développeur » ouvre les **Paramètres Quest** (relais vrshell), qui ne proposent que « Débogage USB » : aucune chaîne « débogage sans fil » dans l'APK `SettingsPanelApp`. Les options développeur Android sont désactivées : `development_settings_enabled` n'est pas défini, et le composant `com.android.settings/.Settings$DevelopmentSettingsDashboardActivity` est dans `disabledComponents`. `am start` répond « does not exist ». | `dumpsys package`, `aapt2 dump resources`, `am start` | ❌ appairage sans PC inaccessible par l'interface ; la première configuration exige un PC |
+| 2026-09-23 | Quest 3 | vros 207 | — | Connexion « via PC » (`adb tcpip 5555` puis 127.0.0.1:5555) | L'invite d'autorisation apparaît dans le casque pour la clé « OpenQuestTuner ». Après « Toujours autoriser », la clé est enregistrée dans `/data/misc/adb/adb_keys`. Le premier probe a échoué (comportement proche de libadb #34) ; la nouvelle tentative de `ConnectionPolicy` a abouti. | logcat (adbd, appli), `/proc/net/tcp6` | ✅ scénario 1.5 |
+| 2026-09-23 | Quest 3 | vros 207 | — | Activation du débogage sans fil par `settings put global adb_wifi_enabled 1` | Horizon OS affiche sa propre fenêtre système `com.oculus.os.vrusb/.WifiDebuggingAlertActivity` (« autoriser sur ce réseau »). Le réglage reste à 0 jusqu'à l'acceptation. Réseau « toujours autorisé » : les activations suivantes se font sans fenêtre. | logcat (WindowManager, vrshell) | ✅ chemin sans-fil utilisable sans les paramètres Android |
+| 2026-09-23 | Quest 3 | vros 207 | — | Connexion TLS sans appairage | Découverte mDNS du port TLS (42911), poignée de main TLS 1.3 via Conscrypt. adbd accepte le certificat de l'appli car sa clé publique est dans `adb_keys` (« Matched auth_key… OpenQuestTuner »). **Aucun code d'appairage nécessaire** une fois la clé autorisée par la méthode PC. | logcat (adbd `adbwifi tls handshake`) | ✅ |
+| 2026-09-23 | Quest 3 | vros 207 | — | Reconnexion automatique au lancement de l'appli | Via PC : socket en 0,6 s. Sans fil (mDNS + TLS) : socket en 0,74 s. L'état affiché est « Connecté (…) » sans action. | `am force-stop` / `am start`, uiautomator | ✅ scénario 1.3, SC-007 |
+| 2026-09-23 | Quest 3 | vros 207 | — | Reconnexion quand le débogage sans fil est coupé | Après 10 s de découverte mDNS : « Déconnecté », sans message d'erreur. | uiautomator | ✅ scénario 1.4 |
+| 2026-09-23 | Quest 3 | vros 207 | — | Déblocage des options développeur Android par le shell | `settings put global development_settings_enabled 1` passe ; `pm enable …DevelopmentSettingsDashboardActivity` est refusé (« Shell cannot change component state »). | `adb shell` | ❌ l'écran d'appairage d'Android reste inaccessible |
+| 2026-09-23 | Quest 3 | vros 207 | — | État après redémarrage | `adb_wifi_enabled` revient à **0** (TLS coupé). `service.adb.tcp.port` reste à **5555** : le port classique survit au redémarrage (constaté une fois, à reconfirmer). `adb_allowed_connection_time=0` : les clés autorisées n'expirent pas. | `settings get`, `getprop`, mDNS côté PC (`_adb._tcp` sur 5555) | ℹ️ |
+| 2026-09-23 | Quest 3 | vros 207 | — | Reconnexion au lancement juste après un redémarrage | 1er essai : l'appli est restée bloquée sur « Connexion… » après `adb client authorized`, parce qu'un appel libadb n'avait pas de délai maximal. Corrigé avec des délais interruptibles (probe 2 s, commande 15 s). La reconnexion essaie aussi l'autre méthode en repli (`reconnectAttempts`). 2e essai : mDNS en échec après 10 s, puis port 5555 connecté en 34 ms. | logs `OqtAdb` | ✅ après correctif |
+| 2026-09-23 | Quest 3 | vros 207 | — | Bouton « Passer en sans fil » (C7 puis C8, puis mDNS et TLS) | Réseau déjà « toujours autorisé » : aucune fenêtre, `adb_wifi_enabled=1`, puis « Connecté (sans fil) » en 0,7 s, sans code. Préférence de connexion enregistrée : `WIRELESS`. | logs `OqtAdb`, retour utilisateur | ✅ scénario 1.2 (quickstart amendé) |
+| 2026-09-23 | Quest 3 | vros 207 | — | Fermeture du port 5555 | Après `adb usb`, `service.adb.tcp.port` vaut toujours 5555 et adbd écoute toujours sur 5555, comme après un redémarrage. Hypothèse : réglage persistant d'Horizon OS, du type « ADB over Wi-Fi » de MQDH ; cause non déterminée. Le scénario 1.4 (aucune méthode disponible) n'est donc pas reproductible sur ce casque. | `adb usb`, `getprop`, `/proc/net/tcp6` | ℹ️ |
+| 2026-09-23 | Quest 3 | vros 207 | — | Premier probe après connexion | Bloqué jusqu'au délai maximal à chaque lancement à froid de l'appli, puis réussi à la nouvelle tentative (proche de libadb #34). Délai du probe ramené de 5 s à 2 s : reconnexion en 2,1 s. | logs `OqtAdb` | ✅ contourné |
+| 2026-09-23 | Quest 3 | vros 207 | — | Fenêtre « autoriser sur ce réseau » après une mise en veille | Le réseau était « toujours autorisé », mais la fenêtre `WifiDebuggingAlertActivity` est réapparue à la réactivation (hypothèse : changement de borne ou BSSID, la confiance étant liée au BSSID sous Android). Tant qu'elle est ouverte, c'est une fenêtre système exclusive : **aucune appli ne se lance** (`am start` sans effet). | `dumpsys activity`, `pidof` | ℹ️ l'appli doit expliquer d'accepter cette fenêtre (fait dans le texte d'aide de « Passer en sans fil ») |
+| 2026-09-23 | Quest 3 | vros 207 | — | Nouveau passage des 3 reconnexions à froid | Sans fil actif : 0,27 s. Sans fil coupé : repli sur 5555 en 53 ms après 10 s de mDNS. Via PC : 42 ms. Aucun blocage du probe cette fois. | logs `OqtAdb` | ✅ |
 
 ## Points à trancher lors des premiers essais
 
@@ -44,4 +61,5 @@ Ces points sont repris de la phase de recherche du MVP.
 - Les niveaux CPU/GPU sont-ils pris en compte en cours de partie, ou seulement au lancement ?
 - Niveaux GPU 6 et 7 sur Quest 3, annoncés par Quest Game Tuner : non confirmés, donc non
   proposés.
-- `am force-stop` et `am start` avec `--user current` sont-ils acceptés sur Horizon OS 2.x ?
+- ~~`am force-stop` et `am start` avec `--user current` sont-ils acceptés sur Horizon OS 2.x ?~~
+  Oui, sur Quest 3, vros 207 (journal du 2026-09-23).

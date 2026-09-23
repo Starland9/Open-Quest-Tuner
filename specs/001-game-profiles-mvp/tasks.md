@@ -332,9 +332,10 @@ reconnecte après fermeture et réouverture de l'appli.
     - `probe` échoue toujours : `ProbeFailed`, après `1 + MAX_PROBE_RETRIES` = 3 tentatives et
       3 `reset` ;
     - une exception levée par `connect` est propagée ;
-  - `reconnectTargets(WIRELESS, 37000) == [Discover, Port(37000)]`,
-    `reconnectTargets(WIRELESS, null) == [Discover]`, `reconnectTargets(PC, 37000) == [Port(5555)]`
-    et `reconnectTargets(null, null) == []`.
+  - `reconnectAttempts` (modifié le 2026-09-23 après essai sur casque : repli sur l'autre méthode) :
+    `(WIRELESS, 37000)` → `[WIRELESS/Discover, WIRELESS/Port(37000), PC/Port(5555)]` ;
+    `(WIRELESS, null)` → `[WIRELESS/Discover, PC/Port(5555)]` ;
+    `(PC, 37000)` → `[PC/Port(5555), WIRELESS/Discover, WIRELESS/Port(37000)]` ; `(null, _)` → `[]`.
 
 ### Implementation for User Story 1
 
@@ -361,11 +362,11 @@ reconnecte après fermeture et réouverture de l'appli.
     - si `connect` renvoie faux : `reset`, puis `NotAuthorized` ;
     - si `probe` renvoie faux : `reset`, puis nouvelle tentative ;
     - les exceptions remontent à l'appelant ;
-  - `fun reconnectTargets(lastMethod: ConnectionMethod?, lastWirelessPort: Int?): List<ConnectTarget>` :
-    - `WIRELESS` → `[Discover]`, puis `Port(lastWirelessPort)` s'il existe. Le port TLS change à
-      chaque activation, donc le port enregistré ne sert qu'en repli ;
-    - `PC` → `[Port(5555)]` ;
-    - `null` → `[]`.
+  - `fun reconnectAttempts(lastMethod: ConnectionMethod?, lastWirelessPort: Int?): List<ReconnectAttempt>`,
+    avec `data class ReconnectAttempt(method, target)`. On essaie d'abord la dernière méthode
+    réussie, puis l'autre en repli. En sans fil : `Discover`, puis `Port(lastWirelessPort)` s'il
+    existe. Via PC : `Port(5555)`. `null` → `[]`. Le port TLS change à chaque activation, et le
+    port 5555 survit au redémarrage sur Quest 3 (vros 207).
 
   Faire passer T024.
 - [X] T027 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/adb/AdbIdentityStore.kt` :
@@ -412,7 +413,7 @@ reconnecte après fermeture et réouverture de l'appli.
     - `NotAuthorized` : `Failed(m, NOT_AUTHORIZED)` ;
     - `ProbeFailed` : `Failed(m, UNKNOWN)` ;
     - exception : `manager.disconnect()`, puis `Failed(m, ConnectionPolicy.classify(e, phase))` ;
-  - `reconnectLast()` : parcourt `ConnectionPolicy.reconnectTargets(prefs.lastMethod, prefs.lastWirelessPort)`
+  - `reconnectLast()` : parcourt `ConnectionPolicy.reconnectAttempts(prefs.lastMethod, prefs.lastWirelessPort)`
     et s'arrête à la première cible qui aboutit. Si aucune n'aboutit, ou si la liste est vide,
     l'état est `Disconnected`, jamais `Failed` (FR-005) ;
   - `disconnect()` : `manager.disconnect()`, puis `Disconnected` ;
@@ -420,6 +421,8 @@ reconnecte après fermeture et réouverture de l'appli.
     tampon de 8 Ko ; une `IOException("Stream closed.")` après réception de données vaut fin de
     flux. Puis `ShellOutput.parse`. Une `IOException` à l'ouverture donne `Disconnected` et lève
     `ShellUnavailableException` ;
+  - délais maximaux interruptibles (`withTimeoutOrNull` et `runInterruptible`) : 2 s pour le
+    probe, 15 s pour `exec`. Ajouté après un blocage constaté sur casque ;
   - aucune autre chaîne ne peut être envoyée au shell.
 - [X] T031 [US1] Dans `app/src/main/java/io/github/openquesttuner/AppContainer.kt`, ajouter
   `val adb = AdbShellBackend(context, AdbIdentityStore(File(context.filesDir, "adb")), ConnectionPrefs(context))`.
@@ -472,10 +475,68 @@ reconnecte après fermeture et réouverture de l'appli.
     débogage sans fil. »
 
   Les équivalents anglais ont le même sens.
-- [ ] T037 [US1] Lancer `./gradlew test assembleDebug`, installer sur le Quest 3, puis dérouler les
-  scénarios 1.1 à 1.6 de [quickstart.md](quickstart.md). Noter dans `docs/compatibility.md`
-  (journal) le comportement du bouton « Ouvrir les options développeur » et de la découverte
-  mDNS.
+- [X] T037 [P] [US1] *(amendement du 2026-09-23)* Compléter deux fichiers de tests :
+  - `app/src/test/java/io/github/openquesttuner/core/ShellCommandsTest.kt` :
+    `enableWirelessDebugging().text == "settings put global adb_wifi_enabled 1"` et
+    `readWirelessDebugging().text == "settings get global adb_wifi_enabled"`. Ajouter les deux
+    commandes au test « aucune commande générable n'écrit une propriété persistante » ;
+  - `app/src/test/java/io/github/openquesttuner/core/ShellOutputTest.kt` :
+    `isSettingEnabled("1\n")` est vrai ; `"0"`, `"null"` et `""` sont faux.
+- [X] T038 [P] [US1] *(amendement)* Compléter `app/src/test/java/io/github/openquesttuner/core/ConnectionPolicyTest.kt`
+  avec `awaitWirelessEnabled`, testé en temps virtuel (`runTest`) :
+  - `read` renvoie faux, faux, puis vrai : résultat vrai, après 3 lectures ;
+  - `read` toujours faux : résultat faux au bout de 60 000 ms virtuelles, soit environ 60 lectures ;
+  - une lecture qui lève une exception compte comme faux ; la suivante peut réussir.
+- [X] T039 [US1] *(amendement)* Ajouter au cœur :
+  - `ShellCommand.enableWirelessDebugging()` (C7) et `ShellCommand.readWirelessDebugging()` (C8)
+    dans `app/src/main/java/io/github/openquesttuner/core/ShellCommands.kt` ;
+  - `ShellOutput.isSettingEnabled(output)` dans
+    `app/src/main/java/io/github/openquesttuner/core/ShellOutput.kt` ;
+  - `enum class WirelessSwitchResult { SWITCHED, NOT_ACCEPTED, WIRELESS_FAILED, NOT_CONNECTED }` et
+    `suspend fun ConnectionPolicy.awaitWirelessEnabled(read, timeoutMs = 60_000, pollMs = 1_000)`
+    dans `app/src/main/java/io/github/openquesttuner/core/ConnectionPolicy.kt`.
+
+  Faire passer T037 et T038.
+- [X] T040 [US1] *(amendement)* Ajouter `suspend fun switchToWireless(): WirelessSwitchResult` à
+  `app/src/main/java/io/github/openquesttuner/adb/AdbShellBackend.kt`, selon
+  [contracts/shell-backend.md](contracts/shell-backend.md) :
+  - n'agit que depuis `Connected(PC)`, sinon `NOT_CONNECTED` ; depuis `Connected(WIRELESS)`,
+    renvoie directement `SWITCHED` ;
+  - `exec(C7)`, puis `awaitWirelessEnabled { ShellOutput.isSettingEnabled(exec(C8).output) }` ;
+    l'appli reste `Connected(PC)` pendant l'attente ;
+  - si le délai est dépassé : `NOT_ACCEPTED` ;
+  - sinon, `connectWireless()` ; en cas d'échec, reconnexion silencieuse au port 5555, puis
+    `WIRELESS_FAILED`.
+- [X] T041 [US1] *(amendement)* Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`,
+  ajouter :
+  - `switchingToWireless: StateFlow<Boolean>` ;
+  - `switchToWireless()`, avec un `UiMessage` par résultat : `NOT_ACCEPTED` (« Réseau non
+    autorisé dans le délai : réessaie et accepte la fenêtre d'Horizon OS »), `WIRELESS_FAILED` et
+    `NOT_CONNECTED`. Rien à afficher pour `SWITCHED`, l'état suffit.
+- [X] T042 [US1] *(amendement)* Réorganiser `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt` :
+  - carte d'état : si `Connected(PC)`, bouton « Passer en sans fil » (d'au moins 48dp), avec
+    l'explication de la fenêtre Horizon OS et un indicateur pendant `switchingToWireless` ;
+  - la carte PC passe en premier, sous le titre « Première connexion (une seule fois, avec un PC) » ;
+  - la carte d'appairage passe en dernier, sous le titre « Appairage par code (si ton casque le
+    propose) », avec une mention indiquant que certaines versions d'Horizon OS n'affichent pas cet
+    écran.
+- [X] T043 [US1] *(amendement)* Ajouter et mettre à jour les chaînes de l'amendement (titres de
+  cartes, bouton, explication, 3 messages) dans `app/src/main/res/values/strings.xml` **et**
+  `app/src/main/res/values-fr/strings.xml`. Lancer `./gradlew test assembleDebug`.
+- [X] T044 [US1] Installer sur le Quest 3, puis dérouler les scénarios 1.1 à 1.7 du
+  [quickstart.md](quickstart.md) amendé. Consigner les résultats dans `docs/compatibility.md`.
+  - **Déjà constaté le 2026-09-23 (Quest 3, vros 207)**, avant l'amendement :
+    - ✅ 1.1 : connexion via PC ;
+    - ✅ 1.2, en manuel (`adb_wifi_enabled=1` écrit depuis le PC, puis « Se connecter » sans fil) :
+      connexion TLS sans appairage ;
+    - ✅ 1.3 : reconnexion en moins de 1 s, par les deux méthodes ;
+    - ✅ 1.5 : repli sur le port 5555 après un redémarrage (après correctif du délai maximal) ;
+    - ➖ 1.7 : écran d'appairage absent sur cette version.
+    - **Clôture (même jour, après l'amendement)** : ✅ 1.2 avec le vrai bouton (sans fil en 0,7 s,
+      sans code). ➖ 1.4 non reproductible sur ce casque : le port 5555 reste ouvert même après
+      `adb usb`. Le chemin « Déconnecté sans erreur » a été vu avant l'amendement et reste couvert
+      par les tests de `ConnectionPolicy`. ➖ 1.6 (chronométrage avec une personne novice) reporté à
+      la validation finale (dernière tâche). ✅ Reconnexion à froid en 2,1 s (probe ramené à 2 s).
 
 **Checkpoint**: l'US1 fonctionne. L'appli se connecte au casque par les deux méthodes.
 
@@ -491,7 +552,7 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
 
 ### Tests for User Story 2
 
-- [ ] T038 [P] [US2] Écrire `app/src/test/java/io/github/openquesttuner/core/ProfileStoreTest.kt`,
+- [ ] T045 [P] [US2] Écrire `app/src/test/java/io/github/openquesttuner/core/ProfileStoreTest.kt`,
   avec `TemporaryFolder` et [contracts/profiles-json.md](contracts/profiles-json.md) :
   - aller-retour `save` puis `load` ;
   - un profil vide supprime l'entrée ;
@@ -502,7 +563,7 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
     vide ;
   - avec `"version": 2`, pas de réécriture tant qu'aucun `save` n'a eu lieu ;
   - l'écriture passe par `profiles.json.tmp`, et il n'en reste aucun après un `save`.
-- [ ] T039 [P] [US2] Créer `app/src/test/java/io/github/openquesttuner/core/FakeShellBackend.kt`,
+- [ ] T046 [P] [US2] Créer `app/src/test/java/io/github/openquesttuner/core/FakeShellBackend.kt`,
   qui enregistre les `command.text` exécutés et renvoie des résultats scriptés par préfixe de
   commande, ou lève `ShellUnavailableException` à la demande.
 
@@ -513,32 +574,32 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
   - une sortie `Error:` de `am start` donne `StepFailed(Launch, …)` ;
   - un profil invalide pour le modèle donne `InvalidProfile`, avec **aucune** commande exécutée ;
   - `ShellUnavailableException` donne `NotConnected`.
-- [ ] T040 [P] [US2] Écrire `app/src/test/java/io/github/openquesttuner/core/SearchKeyTest.kt` :
+- [ ] T047 [P] [US2] Écrire `app/src/test/java/io/github/openquesttuner/core/SearchKeyTest.kt` :
   `searchKey("Éléphant Rouge") == "elephant rouge"`, `searchKey("  Beat SABER ") == "beat saber"`,
   et un tri par `searchKey` qui place « Élite » entre « Echo » et « Fable ».
 
 ### Implementation for User Story 2
 
-- [ ] T041 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/core/SearchKey.kt` :
+- [ ] T048 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/core/SearchKey.kt` :
   `fun searchKey(s: String)`, qui applique `Normalizer.normalize(NFD)`, retire les marques
   diacritiques `\p{Mn}`, met en minuscules avec `Locale.ROOT` et applique `trim`. Faire passer
-  T040.
-- [ ] T042 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/core/ProfileStore.kt` :
+  T047.
+- [ ] T049 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/core/ProfileStore.kt` :
   - `class ProfileStore(file: File)` avec `profiles: StateFlow<Map<String, GameProfile>>`,
     `suspend fun load()`, `suspend fun save(pkg, profile)` et `suspend fun delete(pkg)` ;
   - `Mutex`, JSON `{ "version": 1, "profiles": {...} }` avec
     `Json { ignoreUnknownKeys = true; encodeDefaults = false; prettyPrint = true }` ;
   - écriture atomique via `.tmp` puis `renameTo` ;
   - toutes les règles de [contracts/profiles-json.md](contracts/profiles-json.md) ;
-  - uniquement `java.io`. Faire passer T038.
-- [ ] T043 [US2] Créer `app/src/main/java/io/github/openquesttuner/core/Tuner.kt` (dépend de
+  - uniquement `java.io`. Faire passer T045.
+- [ ] T050 [US2] Créer `app/src/main/java/io/github/openquesttuner/core/Tuner.kt` (dépend de
   T013 à T016) :
   - `class Tuner(shell: ShellBackend, model: QuestModel)` ;
   - `suspend fun applyAndLaunch(pkg, activity, profile): TuneResult`, avec les types
     `TuneResult` et `TuneStep` de [data-model.md](data-model.md) ;
   - validation d'abord, puis la séquence « Appliquer et lancer » du contrat : arrêt au premier
-    échec, `launch` en échec si `ShellOutput.isLaunchError(output)`. Faire passer T039.
-- [ ] T044 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/games/GameRepository.kt` :
+    échec, `launch` en échec si `ShellOutput.isLaunchError(output)`. Faire passer T046.
+- [ ] T051 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/games/GameRepository.kt` :
   - `data class InstalledGame(packageName, label, launchActivity)` ;
   - `suspend fun loadGames(): List<InstalledGame>` sur `Dispatchers.IO`, avec les deux sources de
     research.md R5 :
@@ -554,15 +615,15 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
   - `fun isInstalled(pkg: String): Boolean`, via `getPackageInfo` (`NameNotFoundException` →
     faux) ;
   - utiliser les API `*Flags.of(0)` sur API 33+, et les API dépréciées en dessous.
-- [ ] T045 [US2] Dans `app/src/main/java/io/github/openquesttuner/AppContainer.kt`, ajouter
+- [ ] T052 [US2] Dans `app/src/main/java/io/github/openquesttuner/AppContainer.kt`, ajouter
   `profileStore = ProfileStore(File(context.filesDir, "profiles.json"))`, `games = GameRepository(context)`
   et `tuner = Tuner(adb, questModel)`. Lancer `profileStore.load()` au démarrage dans
   `OqtApplication`.
-- [ ] T046 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/ui/components/GameIcon.kt` :
+- [ ] T053 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/ui/components/GameIcon.kt` :
   icône 48dp chargée par `produceState` sur `Dispatchers.IO` (`pm.getApplicationIcon(pkg).toBitmap(96, 96)`),
   avec un cache mémoire `LruCache<String, ImageBitmap>(200)` et une icône générique si le
   chargement échoue.
-- [ ] T047 [US2] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter :
+- [ ] T054 [US2] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter :
   - `games: StateFlow<List<InstalledGame>>`, chargée à l'initialisation, et `refreshGames()` ;
   - `profiles`, en délégation au store ;
   - `questModel` ;
@@ -576,10 +637,10 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
     - `StepFailed(Launch)` quand `games.isInstalled(pkg)` est faux : message « jeu introuvable »,
       puis `refreshGames()` et retour à la liste (cas limite « jeu désinstallé… ») ;
   - un état `busy` pendant l'opération.
-- [ ] T048 [US2] Dans `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt`, remplacer le
+- [ ] T055 [US2] Dans `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt`, remplacer le
   contenu provisoire par une `LazyColumn` de lignes d'au moins 64dp : `GameIcon`, nom, paquet en
   petit. Un appui ouvre `Screen.Profile(pkg)`.
-- [ ] T049 [US2] Créer `app/src/main/java/io/github/openquesttuner/ui/ProfileScreen.kt` :
+- [ ] T056 [US2] Créer `app/src/main/java/io/github/openquesttuner/ui/ProfileScreen.kt` :
   - `TopAppBar` avec retour et nom du jeu. Brouillon local
     `remember(pkg) { mutableStateOf(saved ?: GameProfile()) }` ;
   - six `ChoiceRow` :
@@ -600,10 +661,10 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
   - barre du bas : « Enregistrer » (toujours actif) et « Appliquer et lancer ». Ce dernier est
     désactivé si l'appli n'est pas `Connected`, avec un texte explicatif et un bouton vers
     l'écran Connexion (FR-021).
-- [ ] T050 [US2] Brancher la route `Screen.Profile` dans
+- [ ] T057 [US2] Brancher la route `Screen.Profile` dans
   `app/src/main/java/io/github/openquesttuner/ui/OqtApp.kt`, et ajouter toutes les chaînes de l'US2
   dans `app/src/main/res/values/strings.xml` **et** `app/src/main/res/values-fr/strings.xml`.
-- [ ] T051 [US2] Lancer `./gradlew test assembleDebug`, installer, puis dérouler les scénarios 2.1
+- [ ] T058 [US2] Lancer `./gradlew test assembleDebug`, installer, puis dérouler les scénarios 2.1
   à 2.8 de [quickstart.md](quickstart.md). Consigner chaque essai de propriété dans le journal de
   `docs/compatibility.md`.
 
@@ -622,7 +683,7 @@ Cette story fait partie du MVP : c'est le filet de sécurité exigé par la cons
 
 ### Tests for User Story 4
 
-- [ ] T052 [US4] Écrire `app/src/test/java/io/github/openquesttuner/core/TunerResetTest.kt` avec
+- [ ] T059 [US4] Écrire `app/src/test/java/io/github/openquesttuner/core/TunerResetTest.kt` avec
   `FakeShellBackend` :
   - `resetAll()` exécute `resetProperty` pour les 7 propriétés, **même si** l'une échoue ;
   - le résultat est `ResetResult(failed = [propriétés en échec])` ;
@@ -630,15 +691,15 @@ Cette story fait partie du MVP : c'est le filet de sécurité exigé par la cons
 
 ### Implementation for User Story 4
 
-- [ ] T053 [US4] Ajouter `suspend fun resetAll(): ResetResult?` à
+- [ ] T060 [US4] Ajouter `suspend fun resetAll(): ResetResult?` à
   `app/src/main/java/io/github/openquesttuner/core/Tuner.kt`. Il renvoie `null` si l'appli n'est
-  pas connectée. Faire passer T052.
-- [ ] T054 [US4] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter
+  pas connectée. Faire passer T059.
+- [ ] T061 [US4] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter
   `resetAll()`, avec un message de succès ou la liste des propriétés en échec.
-- [ ] T055 [US4] Dans `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt`, ajouter
+- [ ] T062 [US4] Dans `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt`, ajouter
   une carte « Outils » avec le bouton « Tout réinitialiser ». Hors connexion, il est désactivé
   avec le rappel : « un redémarrage du casque efface aussi tous les réglages ».
-- [ ] T056 [US4] Ajouter les chaînes de l'US4 dans `app/src/main/res/values/strings.xml` **et**
+- [ ] T063 [US4] Ajouter les chaînes de l'US4 dans `app/src/main/res/values/strings.xml` **et**
   `app/src/main/res/values-fr/strings.xml`, lancer `./gradlew test assembleDebug`, puis dérouler
   le scénario 4.1 de [quickstart.md](quickstart.md).
 
@@ -656,22 +717,22 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
 
 ### Tests for User Story 3
 
-- [ ] T057 [US3] Compléter `app/src/test/java/io/github/openquesttuner/core/SearchKeyTest.kt` avec
+- [ ] T064 [US3] Compléter `app/src/test/java/io/github/openquesttuner/core/SearchKeyTest.kt` avec
   `matchesQuery("Beat Saber", "saber")`, `matchesQuery("Élite Dangerous", "elite")` et
   `matchesQuery("X", "")` (requête vide : vrai), ainsi que `matchesQuery("Beat Saber", "zzz")`
   (faux).
 
 ### Implementation for User Story 3
 
-- [ ] T058 [US3] Ajouter `fun matchesQuery(label: String, query: String): Boolean` à
+- [ ] T065 [US3] Ajouter `fun matchesQuery(label: String, query: String): Boolean` à
   `app/src/main/java/io/github/openquesttuner/core/SearchKey.kt` : il est vrai si
-  `searchKey(label)` contient `searchKey(query)`. Faire passer T057.
-- [ ] T059 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter :
+  `searchKey(label)` contient `searchKey(query)`. Faire passer T064.
+- [ ] T066 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter :
   - `query` et `filteredGames`, combinaison de `games` et `query` ;
   - `deleteProfile(pkg)` ;
   - `quickLaunch(game)` : profil enregistré, ou `GameProfile()` pour tout remettre par défaut. Il
     passe par le même chemin qu'`applyAndLaunch`, et hérite donc de la gestion « jeu introuvable ».
-- [ ] T060 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt`, ajouter :
+- [ ] T067 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt`, ajouter :
   - un champ de recherche en tête de liste ;
   - une puce « Profil » sur les jeux qui ont un profil non vide (FR-015) ;
   - une action « Actualiser » dans la `TopAppBar` ;
@@ -680,11 +741,11 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
     désactivés et propose « Se connecter », qui ouvre l'écran Connexion (FR-021) ;
   - un état vide explicatif s'il n'y a aucun jeu VR, et un autre pour une recherche sans
     résultat.
-- [ ] T061 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/ProfileScreen.kt`, ajouter
+- [ ] T068 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/ProfileScreen.kt`, ajouter
   l'action « Supprimer le profil » dans la `TopAppBar` quand un profil existe, avec un
   `AlertDialog` de confirmation (FR-014). Après suppression, le brouillon revient à
   `GameProfile()`.
-- [ ] T062 [US3] Ajouter les chaînes de l'US3 dans `app/src/main/res/values/strings.xml` **et**
+- [ ] T069 [US3] Ajouter les chaînes de l'US3 dans `app/src/main/res/values/strings.xml` **et**
   `app/src/main/res/values-fr/strings.xml`, lancer `./gradlew test assembleDebug`, puis dérouler
   les scénarios 3.1 à 3.3 de [quickstart.md](quickstart.md).
 
@@ -700,7 +761,7 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
 
 ### Tests for User Story 5
 
-- [ ] T063 [US5] Écrire `app/src/test/java/io/github/openquesttuner/core/TunerDiagnosticTest.kt`
+- [ ] T070 [US5] Écrire `app/src/test/java/io/github/openquesttuner/core/TunerDiagnosticTest.kt`
   avec `FakeShellBackend` :
   - `readDiagnostic()` exécute uniquement `readProperties()` ;
   - sur une sortie `getprop` réaliste (mélange de propriétés), il renvoie
@@ -709,18 +770,18 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
 
 ### Implementation for User Story 5
 
-- [ ] T064 [US5] Ajouter `suspend fun readDiagnostic(): Diagnostic?` à
-  `app/src/main/java/io/github/openquesttuner/core/Tuner.kt`. Faire passer T063.
-- [ ] T065 [US5] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter
+- [ ] T071 [US5] Ajouter `suspend fun readDiagnostic(): Diagnostic?` à
+  `app/src/main/java/io/github/openquesttuner/core/Tuner.kt`. Faire passer T070.
+- [ ] T072 [US5] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter
   `diagnostic: StateFlow<Diagnostic?>` et `refreshDiagnostic()`. Relire automatiquement après
   « Appliquer et lancer » et après « Tout réinitialiser ».
-- [ ] T066 [US5] Dans `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt`, ajouter
+- [ ] T073 [US5] Dans `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt`, ajouter
   une carte « Diagnostic » :
   - liste `clé = valeur` en police mono ;
   - bouton « Actualiser » ;
   - texte « Aucun réglage actif » si la map est vide ;
   - carte masquée hors connexion.
-- [ ] T067 [US5] Ajouter les chaînes de l'US5 dans `app/src/main/res/values/strings.xml` **et**
+- [ ] T074 [US5] Ajouter les chaînes de l'US5 dans `app/src/main/res/values/strings.xml` **et**
   `app/src/main/res/values-fr/strings.xml`, lancer `./gradlew test assembleDebug`, puis dérouler
   le scénario 5.1 de [quickstart.md](quickstart.md).
 
@@ -732,14 +793,14 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
 
 **Purpose**: garde-fous de la constitution, documentation, validation complète.
 
-- [ ] T068 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/CoreArchitectureTest.kt` : il
+- [ ] T075 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/CoreArchitectureTest.kt` : il
   parcourt `app/src/main/java/io/github/openquesttuner/core/**/*.kt` et échoue si un fichier
   contient `import android.` ou `import androidx.` (principe IV).
-- [ ] T069 [P] Écrire `app/src/test/java/io/github/openquesttuner/StringsParityTest.kt` : il parse
+- [ ] T076 [P] Écrire `app/src/test/java/io/github/openquesttuner/StringsParityTest.kt` : il parse
   `app/src/main/res/values/strings.xml` et `app/src/main/res/values-fr/strings.xml`, puis échoue
   si les ensembles de `name` diffèrent, en ignorant les chaînes `translatable="false"` comme
   `app_name` (FR-029, SC-010).
-- [ ] T070 [P] Créer `README.md` en anglais, pour le public GitHub, avec un paragraphe
+- [ ] T077 [P] Créer `README.md` en anglais, pour le public GitHub, avec un paragraphe
   d'introduction en français. Contenu :
   - ce que fait l'appli et sa licence GPL-3.0 ;
   - avertissement sur les propriétés non documentées et « expérimentales » ;
@@ -748,12 +809,12 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
   - build (`./gradlew test assembleDebug`) ;
   - liens vers `docs/compatibility.md` et `specs/001-game-profiles-mvp/` ;
   - mention clean-room : aucun lien avec Quest Games Optimizer.
-- [ ] T071 Retirer le commentaire « Sync Impact Report » en tête de `.specify/memory/constitution.md`
+- [ ] T078 Retirer le commentaire « Sync Impact Report » en tête de `.specify/memory/constitution.md`
   : c'est une note temporaire à supprimer avant le premier commit.
-- [ ] T072 Lancer `./gradlew test assembleDebug lintDebug` et corriger toutes les erreurs de lint,
+- [ ] T079 Lancer `./gradlew test assembleDebug lintDebug` et corriger toutes les erreurs de lint,
   notamment `MissingTranslation`. Les avertissements restants sont notés dans la description du
   commit.
-- [ ] T073 Validation complète sur Quest 3 (**nécessite le casque**) :
+- [ ] T080 Validation complète sur Quest 3 (**nécessite le casque**) :
   - dérouler tout [quickstart.md](quickstart.md), y compris 5.2 (langues) et la section 5
     (réseau, SC-009) ;
   - remplir `docs/compatibility.md` ;
@@ -783,14 +844,14 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
 
 ### Fichiers partagés (donc séquentiels, jamais [P] entre eux)
 
-- `ui/MainViewModel.kt` : T020, T033, T047, T054, T059, T065.
-- `core/Tuner.kt` : T043, T053, T064.
-- `ui/ConnectionScreen.kt` : T034, T055, T066.
-- `ui/GamesScreen.kt` : T021, T035, T048, T060.
-- `ui/OqtApp.kt` : T021, T035, T050.
-- `AppContainer.kt` : T019, T031, T045.
-- `core/SearchKey.kt` : T041, T058. `core/SearchKeyTest.kt` : T040, T057.
-- `strings.xml` (en et fr) : T006, T036, T050, T056, T062, T067.
+- `ui/MainViewModel.kt` : T020, T033, T054, T061, T066, T072.
+- `core/Tuner.kt` : T050, T060, T071.
+- `ui/ConnectionScreen.kt` : T034, T062, T073.
+- `ui/GamesScreen.kt` : T021, T035, T055, T067.
+- `ui/OqtApp.kt` : T021, T035, T057.
+- `AppContainer.kt` : T019, T031, T052.
+- `core/SearchKey.kt` : T048, T065. `core/SearchKeyTest.kt` : T047, T064.
+- `strings.xml` (en et fr) : T006, T036, T057, T063, T069, T074.
 
 ### Within Each User Story
 
@@ -805,7 +866,7 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
   Ensuite T013 → T014, et T015 et T016 dès que T011 et T012 sont prêts.
 - US1 : T023 à T029 en parallèle (tests, `ConnectionInput`, `ConnectionPolicy`, identité,
   gestionnaire, préférences), et T032 en parallèle de T030.
-- US2 : T038 à T040 en parallèle. Puis T041, T042, T044 et T046 en parallèle.
+- US2 : T045 à T047 en parallèle. Puis T048, T049, T051 et T053 en parallèle.
 - Après l'US2, l'US3, l'US4 et l'US5 peuvent avancer en parallèle, à condition de séquencer les
   fichiers partagés.
 
@@ -859,4 +920,4 @@ Le MVP contient les trois stories P1 :
   d'intégration de la constitution).
 - Tout ajout de commande shell doit d'abord amender
   [contracts/shell-commands.md](contracts/shell-commands.md) (principe I).
-- Les tâches T037, T051, T056, T062, T067 et T073 exigent le Quest 3 physique.
+- Les tâches T044, T058, T063, T069, T074 et T080 exigent le Quest 3 physique.

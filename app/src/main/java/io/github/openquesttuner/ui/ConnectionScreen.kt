@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.openquesttuner.R
 import io.github.openquesttuner.core.ConnectionInput
+import io.github.openquesttuner.core.ConnectionMethod
 import io.github.openquesttuner.core.ConnectionState
 import io.github.openquesttuner.ui.components.isBusy
 import io.github.openquesttuner.ui.components.labelRes
@@ -63,6 +64,8 @@ fun ConnectionScreen(
     onConnectPc: () -> Unit,
     onDisconnect: () -> Unit,
     onDeveloperOptionsUnavailable: () -> Unit,
+    switchingToWireless: Boolean,
+    onSwitchToWireless: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -84,21 +87,28 @@ fun ConnectionScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                StatusCard(state, onDisconnect)
+                StatusCard(state, onDisconnect, switchingToWireless, onSwitchToWireless)
+                // Première connexion via PC (une seule fois), puis « Passer en sans fil » ;
+                // l'appairage par code n'est qu'un secours (spec US1, amendée le 2026-09-23).
+                PcCard(busy = state.isBusy || switchingToWireless, onConnectPc = onConnectPc)
                 WirelessCard(
-                    busy = state.isBusy,
+                    busy = state.isBusy || switchingToWireless,
                     onPair = onPair,
                     onConnect = onConnectWireless,
                     onDeveloperOptionsUnavailable = onDeveloperOptionsUnavailable,
                 )
-                PcCard(busy = state.isBusy, onConnectPc = onConnectPc)
             }
         }
     }
 }
 
 @Composable
-private fun StatusCard(state: ConnectionState, onDisconnect: () -> Unit) {
+private fun StatusCard(
+    state: ConnectionState,
+    onDisconnect: () -> Unit,
+    switchingToWireless: Boolean,
+    onSwitchToWireless: () -> Unit,
+) {
     SectionCard(title = stringResource(R.string.connection_status_title)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (state.isBusy) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 3.dp)
@@ -111,8 +121,29 @@ private fun StatusCard(state: ConnectionState, onDisconnect: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
+        if (state is ConnectionState.Connected && state.method == ConnectionMethod.PC) {
+            Text(
+                stringResource(if (switchingToWireless) R.string.switch_waiting else R.string.switch_to_wireless_hint),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Button(
+                onClick = onSwitchToWireless,
+                enabled = !switchingToWireless,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                if (switchingToWireless) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(R.string.switch_to_wireless))
+                }
+            }
+        }
         if (state is ConnectionState.Connected) {
-            OutlinedButton(onClick = onDisconnect, modifier = Modifier.heightIn(min = 48.dp)) {
+            OutlinedButton(
+                onClick = onDisconnect,
+                enabled = !switchingToWireless,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
                 Text(stringResource(R.string.disconnect))
             }
         }
@@ -136,6 +167,11 @@ private fun WirelessCard(
     val connectPortValid = connectPort.isEmpty() || ConnectionInput.parsePort(connectPort) != null
 
     SectionCard(title = stringResource(R.string.wireless_title)) {
+        Text(
+            stringResource(R.string.wireless_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Steps(R.string.wireless_step_1, R.string.wireless_step_2, R.string.wireless_step_3)
         OutlinedButton(
             onClick = {

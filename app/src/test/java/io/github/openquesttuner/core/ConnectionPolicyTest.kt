@@ -1,5 +1,6 @@
 package io.github.openquesttuner.core
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -10,6 +11,7 @@ import java.net.ConnectException
 /** Même nom simple que l'exception de libadb-android : le cœur la reconnaît sans en dépendre. */
 private class AdbPairingRequiredException : Exception("pairing required")
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ConnectionPolicyTest {
 
     // --- classify
@@ -125,24 +127,77 @@ class ConnectionPolicyTest {
         }
     }
 
-    // --- reconnectTargets
+    // --- awaitWirelessEnabled
 
     @Test
-    fun `sans fil, decouverte mDNS d'abord puis port enregistre en repli`() {
-        assertEquals(
-            listOf(ConnectTarget.Discover, ConnectTarget.Port(37000)),
-            ConnectionPolicy.reconnectTargets(ConnectionMethod.WIRELESS, 37000),
+    fun `attend que le debogage sans fil soit actif`() = runTest {
+        var reads = 0
+        val enabled = ConnectionPolicy.awaitWirelessEnabled(read = { ++reads >= 3 })
+        assertEquals(true, enabled)
+        assertEquals(3, reads)
+    }
+
+    @Test
+    fun `abandonne au bout de 60 secondes sans acceptation`() = runTest {
+        var reads = 0
+        val start = testScheduler.currentTime
+        val enabled = ConnectionPolicy.awaitWirelessEnabled(read = { reads++; false })
+        assertEquals(false, enabled)
+        assertEquals(60_000L, testScheduler.currentTime - start)
+        assertEquals(true, reads in 59..61)
+    }
+
+    @Test
+    fun `une lecture en erreur compte comme non actif`() = runTest {
+        var reads = 0
+        val enabled = ConnectionPolicy.awaitWirelessEnabled(
+            read = {
+                reads++
+                if (reads == 1) throw IOException("lecture impossible") else true
+            },
         )
-        assertEquals(listOf(ConnectTarget.Discover), ConnectionPolicy.reconnectTargets(ConnectionMethod.WIRELESS, null))
+        assertEquals(true, enabled)
+        assertEquals(2, reads)
+    }
+
+    // --- reconnectAttempts
+
+    private fun attempt(method: ConnectionMethod, target: ConnectTarget) = ReconnectAttempt(method, target)
+
+    @Test
+    fun `sans fil d'abord, mDNS puis port enregistre puis repli sur le port 5555`() {
+        // Sur Quest 3 (vros 207), le port 5555 survit au redémarrage alors que le TLS est coupé.
+        assertEquals(
+            listOf(
+                attempt(ConnectionMethod.WIRELESS, ConnectTarget.Discover),
+                attempt(ConnectionMethod.WIRELESS, ConnectTarget.Port(37000)),
+                attempt(ConnectionMethod.PC, ConnectTarget.Port(5555)),
+            ),
+            ConnectionPolicy.reconnectAttempts(ConnectionMethod.WIRELESS, 37000),
+        )
+        assertEquals(
+            listOf(
+                attempt(ConnectionMethod.WIRELESS, ConnectTarget.Discover),
+                attempt(ConnectionMethod.PC, ConnectTarget.Port(5555)),
+            ),
+            ConnectionPolicy.reconnectAttempts(ConnectionMethod.WIRELESS, null),
+        )
     }
 
     @Test
-    fun `via PC, toujours le port 5555`() {
-        assertEquals(listOf(ConnectTarget.Port(5555)), ConnectionPolicy.reconnectTargets(ConnectionMethod.PC, 37000))
+    fun `via PC d'abord, port 5555 puis repli sur le sans fil`() {
+        assertEquals(
+            listOf(
+                attempt(ConnectionMethod.PC, ConnectTarget.Port(5555)),
+                attempt(ConnectionMethod.WIRELESS, ConnectTarget.Discover),
+                attempt(ConnectionMethod.WIRELESS, ConnectTarget.Port(37000)),
+            ),
+            ConnectionPolicy.reconnectAttempts(ConnectionMethod.PC, 37000),
+        )
     }
 
     @Test
-    fun `aucune methode connue, aucune cible`() {
-        assertEquals(emptyList<ConnectTarget>(), ConnectionPolicy.reconnectTargets(null, null))
+    fun `aucune methode connue, aucune tentative`() {
+        assertEquals(emptyList<ReconnectAttempt>(), ConnectionPolicy.reconnectAttempts(null, 37000))
     }
 }

@@ -18,7 +18,7 @@
     <string name="connection_title">Connection &amp; tools</string>
     <string name="connection_status_title">Status</string>
     <string name="disconnect">Disconnect</string>
-    <string name="wireless_title">Without a PC (recommended)</string>
+    <string name="wireless_title">Pairing code (if your headset offers it)</string>
     <string name="wireless_step_1">Open the developer options and turn on “Wireless debugging”.</string>
     <string name="wireless_step_2">Accept “Always allow on this network”.</string>
     <string name="wireless_step_3">Tap “Pair device with pairing code”, keep that panel next to this one, then enter the port and code below.</string>
@@ -32,9 +32,16 @@
     <string name="connection_port_optional">Connection port (optional)</string>
     <string name="connection_port_hint">Leave empty to find it automatically.</string>
     <string name="connect">Connect</string>
-    <string name="pc_title">With a PC</string>
+    <string name="pc_title">First connection (once, with a PC)</string>
     <string name="pc_step_1">Plug the headset into a computer with ADB and run:</string>
     <string name="pc_step_2">Unplug the cable, tap “Connect (via PC)”, then accept the debugging prompt in the headset (“Always allow”).</string>
-    <string name="pc_note">To be done again after each headset restart.</string>
+    <string name="pc_note">Only once: then tap “Switch to wireless” and you won\'t need the PC anymore.</string>
     <string name="connect_pc">Connect (via PC)</string>
+    <string name="wireless_note">Some Horizon OS versions don\'t show this screen. In that case, do the first connection with a PC, then “Switch to wireless”.</string>
+    <string name="switch_to_wireless">Switch to wireless</string>
+    <string name="switch_to_wireless_hint">The headset may ask you to allow wireless debugging on this network: check “Always allow”.</string>
+    <string name="switch_waiting">Waiting for the network authorization in the headset…</string>
+    <string name="switch_not_accepted">Network not allowed in time: try again and accept the Horizon OS window.</string>
+    <string name="switch_wireless_failed">The wireless connection failed. Try again in a moment.</string>
+    <string name="switch_not_connected">Connect via PC first.</string>
 </resources>

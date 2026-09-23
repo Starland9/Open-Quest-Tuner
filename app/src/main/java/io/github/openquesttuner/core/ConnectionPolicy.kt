@@ -1,7 +1,10 @@
 package io.github.openquesttuner.core
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import java.net.ConnectException
+import kotlin.coroutines.cancellation.CancellationException
 
 enum class ConnectPhase { PAIRING, DISCOVERY, CONNECT }
 
@@ -10,6 +13,12 @@ sealed interface ConnectTarget {
     data object Discover : ConnectTarget
     data class Port(val port: Int) : ConnectTarget
 }
+
+/** Une tentative de reconnexion : la méthode à afficher et la cible à essayer. */
+data class ReconnectAttempt(val method: ConnectionMethod, val target: ConnectTarget)
+
+/** Issue du passage en sans fil depuis une connexion via PC (FR-001). */
+enum class WirelessSwitchResult { SWITCHED, NOT_ACCEPTED, WIRELESS_FAILED, NOT_CONNECTED }
 
 sealed interface ProbeOutcome {
     data object Connected : ProbeOutcome
@@ -31,6 +40,9 @@ object ConnectionPolicy {
 
     /** Nouvelles tentatives après un probe raté (libadb-android #34, research.md R3). */
     const val MAX_PROBE_RETRIES = 2
+
+    const val WIRELESS_ACCEPT_TIMEOUT_MS = 60_000L
+    const val WIRELESS_POLL_MS = 1_000L
 
     private const val DISCOVERY_FAILURE_MESSAGE = "Could not find any valid host address or port"
 
@@ -65,15 +77,46 @@ object ConnectionPolicy {
     }
 
     /**
-     * Ordre des tentatives de reconnexion au démarrage (FR-005). En sans fil, le port TLS change à
-     * chaque activation : la découverte mDNS passe avant le port enregistré, qui n'est qu'un repli.
+     * Tentatives de reconnexion au démarrage (FR-005), dans l'ordre : d'abord la dernière méthode
+     * réussie, puis l'autre en repli. Sur Quest 3 (vros 207), le port 5555 survit au redémarrage
+     * alors que le débogage sans fil est coupé, et une même clé est acceptée par les deux
+     * (docs/compatibility.md). En sans fil, le port TLS change à chaque activation : la découverte
+     * mDNS passe avant le port enregistré.
      */
-    fun reconnectTargets(lastMethod: ConnectionMethod?, lastWirelessPort: Int?): List<ConnectTarget> =
-        when (lastMethod) {
-            ConnectionMethod.WIRELESS -> listOfNotNull(ConnectTarget.Discover, lastWirelessPort?.let(ConnectTarget::Port))
-            ConnectionMethod.PC -> listOf(ConnectTarget.Port(PC_PORT))
+    fun reconnectAttempts(lastMethod: ConnectionMethod?, lastWirelessPort: Int?): List<ReconnectAttempt> {
+        val wireless = listOfNotNull(
+            ReconnectAttempt(ConnectionMethod.WIRELESS, ConnectTarget.Discover),
+            lastWirelessPort?.let { ReconnectAttempt(ConnectionMethod.WIRELESS, ConnectTarget.Port(it)) },
+        )
+        val pc = listOf(ReconnectAttempt(ConnectionMethod.PC, ConnectTarget.Port(PC_PORT)))
+        return when (lastMethod) {
+            ConnectionMethod.WIRELESS -> wireless + pc
+            ConnectionMethod.PC -> pc + wireless
             null -> emptyList()
         }
+    }
+
+    /**
+     * Attend que le débogage sans fil soit actif : Horizon OS affiche d'abord sa fenêtre
+     * « autoriser sur ce réseau », et le réglage reste à 0 tant que l'utilisateur n'a pas accepté.
+     * Une lecture en erreur compte comme « pas encore actif ».
+     */
+    suspend fun awaitWirelessEnabled(
+        read: suspend () -> Boolean,
+        timeoutMs: Long = WIRELESS_ACCEPT_TIMEOUT_MS,
+        pollMs: Long = WIRELESS_POLL_MS,
+    ): Boolean = withTimeoutOrNull(timeoutMs) {
+        while (!readSafely(read)) delay(pollMs)
+        true
+    } ?: false
+
+    private suspend fun readSafely(read: suspend () -> Boolean): Boolean = try {
+        read()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        false
+    }
 
     private fun Throwable.isDiscoveryFailure(): Boolean =
         this is InterruptedException ||

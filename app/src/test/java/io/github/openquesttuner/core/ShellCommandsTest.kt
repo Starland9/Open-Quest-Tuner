@@ -49,6 +49,12 @@ class ShellCommandsTest {
     }
 
     @Test
+    fun `C7 et C8 activent et lisent le debogage sans fil`() {
+        assertEquals("settings put global adb_wifi_enabled 1", ShellCommand.enableWirelessDebugging().text)
+        assertEquals("settings get global adb_wifi_enabled", ShellCommand.readWirelessDebugging().text)
+    }
+
+    @Test
     fun `wireText ajoute le marqueur de code de sortie`() {
         val command = ShellCommand.probe()
         assertEquals(command.text + "; echo __OQT_EXIT__:\$?", command.wireText)
@@ -118,6 +124,8 @@ class ShellCommandsTest {
             add(ShellCommand.launch("com.a.b", "com.a.b.Main"))
             add(ShellCommand.readProperties())
             add(ShellCommand.probe())
+            add(ShellCommand.enableWirelessDebugging())
+            add(ShellCommand.readWirelessDebugging())
         }
         all.forEach { command ->
             assertFalse(command.wireText, command.wireText.contains("persist."))

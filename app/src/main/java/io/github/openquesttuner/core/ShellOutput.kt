@@ -30,6 +30,9 @@ object ShellOutput {
         .toMap()
         .toSortedMap()
 
+    /** Un réglage `settings get` booléen est actif seulement s'il vaut `1`. */
+    fun isSettingEnabled(output: String): Boolean = output.trim() == "1"
+
     /** `am start` peut renvoyer 0 tout en échouant : il l'annonce par une ligne `Error`. */
     fun isLaunchError(output: String): Boolean =
         output.lineSequence().any { it.trimStart().startsWith("Error") }

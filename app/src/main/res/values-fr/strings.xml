@@ -17,7 +17,7 @@
     <string name="connection_title">Connexion et outils</string>
     <string name="connection_status_title">État</string>
     <string name="disconnect">Se déconnecter</string>
-    <string name="wireless_title">Sans PC (recommandé)</string>
+    <string name="wireless_title">Appairage par code (si ton casque le propose)</string>
     <string name="wireless_step_1">Ouvre les options développeur et active « Débogage sans fil ».</string>
     <string name="wireless_step_2">Accepte « Toujours autoriser sur ce réseau ».</string>
     <string name="wireless_step_3">Touche « Associer l\'appareil avec un code », garde ce panneau à côté de celui-ci, puis saisis le port et le code ci-dessous.</string>
@@ -31,9 +31,16 @@
     <string name="connection_port_optional">Port de connexion (facultatif)</string>
     <string name="connection_port_hint">Laisse vide pour le trouver automatiquement.</string>
     <string name="connect">Se connecter</string>
-    <string name="pc_title">Avec un PC</string>
+    <string name="pc_title">Première connexion (une seule fois, avec un PC)</string>
     <string name="pc_step_1">Branche le casque à un ordinateur équipé d\'ADB et lance :</string>
     <string name="pc_step_2">Débranche le câble, touche « Se connecter (via PC) », puis accepte l\'invite de débogage dans le casque (« Toujours autoriser »).</string>
-    <string name="pc_note">À refaire après chaque redémarrage du casque.</string>
+    <string name="pc_note">Une seule fois : ensuite, touche « Passer en sans fil » et le PC ne sera plus nécessaire.</string>
     <string name="connect_pc">Se connecter (via PC)</string>
+    <string name="wireless_note">Certaines versions d\'Horizon OS n\'affichent pas cet écran. Dans ce cas, fais la première connexion avec un PC, puis « Passer en sans fil ».</string>
+    <string name="switch_to_wireless">Passer en sans fil</string>
+    <string name="switch_to_wireless_hint">Le casque peut te demander d\'autoriser le débogage sans fil sur ce réseau : coche « Toujours autoriser ».</string>
+    <string name="switch_waiting">En attente de l\'autorisation du réseau dans le casque…</string>
+    <string name="switch_not_accepted">Réseau non autorisé dans le délai : réessaie et accepte la fenêtre d\'Horizon OS.</string>
+    <string name="switch_wireless_failed">La connexion sans fil a échoué. Réessaie dans un instant.</string>
+    <string name="switch_not_connected">Connecte-toi d\'abord via PC.</string>
 </resources>

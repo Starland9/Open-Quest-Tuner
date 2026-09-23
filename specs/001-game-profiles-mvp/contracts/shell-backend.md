@@ -62,8 +62,9 @@ appelées uniquement par le ViewModel.
 |---|---|---|
 | `suspend fun pair(port: Int, code: String): Boolean` | Appairage TLS sur `127.0.0.1:port`, puis `connectWireless()` en cas de succès | `code` : exactement 6 chiffres ; `port` dans 1–65535. La validation est faite par le cœur (`ConnectionInput`) avant l'appel. |
 | `suspend fun connectWireless(port: Int? = null): Boolean` | Découverte mDNS du port TLS (`port == null`), ou connexion au port donné | Délai de découverte : 10 s |
+| `suspend fun switchToWireless(): WirelessSwitchResult` | Passage en sans fil depuis `Connected(PC)` : C7, puis attente de `adb_wifi_enabled=1` (60 s max, C8), puis `connectWireless()`. En cas d'échec du sans-fil, reconnexion silencieuse au port 5555. | Résultats : `SWITCHED`, `NOT_ACCEPTED` (délai dépassé, l'appli reste connectée via PC), `WIRELESS_FAILED`, `NOT_CONNECTED` |
 | `suspend fun connectPc(): Boolean` | Connexion à `127.0.0.1:5555` | Délai d'autorisation : 30 s, pour laisser l'utilisateur accepter l'invite dans le casque |
-| `suspend fun reconnectLast()` | Rejoue la dernière méthode réussie, sans passer par l'état `Failed`. En sans fil : découverte mDNS d'abord, car le port TLS change à chaque activation, puis le port manuel enregistré en repli. Via PC : `127.0.0.1:5555`. | Ordre donné par `ConnectionPolicy.reconnectTargets`. Si tout échoue, l'état est `Disconnected` (FR-005) |
+| `suspend fun reconnectLast()` | Rejoue la dernière méthode réussie, puis l'autre en repli, sans passer par l'état `Failed`. En sans fil : découverte mDNS d'abord, car le port TLS change à chaque activation, puis le port manuel enregistré. Via PC : `127.0.0.1:5555`. | Ordre donné par `ConnectionPolicy.reconnectAttempts`. Sur Quest 3, le port 5555 survit au redémarrage alors que le TLS est coupé. Si tout échoue, l'état est `Disconnected` (FR-005) |
 | `suspend fun disconnect()` | Ferme la connexion | Appelle `disconnect()` de libadb, **jamais** `close()`, qui détruirait la clé privée |
 
 Les décisions de connexion vivent dans le cœur, dans `core/ConnectionPolicy.kt`, testé en JVM :
@@ -82,6 +83,10 @@ Règles d'implémentation, reprises des pièges constatés dans libadb-android 3
 - La lecture d'un `AdbStream` peut lever `IOException("Stream closed.")` après la dernière donnée.
   C'est une fin de flux normale dès lors que des données ont été reçues.
 - Les opérations de connexion sont sérialisées par un `Mutex` et exécutées sur `Dispatchers.IO`.
+- **Délais maximaux** : libadb peut bloquer indéfiniment si adbd ne répond pas sur un flux (constaté
+  sur Quest 3 après un redémarrage). Chaque exécution passe par `withTimeoutOrNull` et
+  `runInterruptible` : 2 s pour le probe, 15 s pour une commande. Un délai dépassé pendant `exec`
+  vaut connexion perdue.
 - **Vérification après connexion** (libadb-android #34, research.md R3) : dès que `connect()`
   renvoie `true`, exécuter C6 `probe()`. S'il échoue, appeler `disconnect()` et refaire la
   connexion, au maximum 2 nouvelles tentatives. L'état ne passe à `Connected` qu'après un

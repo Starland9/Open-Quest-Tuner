@@ -22,6 +22,8 @@ shell, par construction.
 | C4 | `launch(pkg, activity)` | `am start --user current -n '<pkg>/<activity>'` | `pkg` conforme à `PACKAGE_REGEX`, `activity` conforme à `CLASS_REGEX` | code de sortie 0 et aucune ligne de sortie ne commence par `Error` |
 | C5 | `readProperties()` | `getprop` | aucune | code de sortie 0 ; seules les lignes `[debug.oculus.*]: [...]` sont gardées |
 | C6 | `probe()` | `true` | aucune | code de sortie 0. Sert à vérifier une connexion tout juste établie (contournement de libadb-android #34, voir research.md R3). |
+| C7 | `enableWirelessDebugging()` | `settings put global adb_wifi_enabled 1` | aucune | code de sortie 0. Horizon OS peut alors afficher sa fenêtre « autoriser sur ce réseau » ; le réglage reste à 0 tant que l'utilisateur n'a pas accepté. Il revient à 0 à chaque redémarrage (constaté), donc FR-026 est respecté. |
+| C8 | `readWirelessDebugging()` | `settings get global adb_wifi_enabled` | aucune | code de sortie 0. Le débogage sans fil est actif si la sortie, sans espaces, vaut `1`. |
 
 Le dispositif du « code de sortie » est décrit dans la section suivante.
 
@@ -69,6 +71,17 @@ Avant de commencer, le profil est validé contre le modèle de casque. Une valeu
 
 C2 pour chacune des 7 `QuestProperty`. On tente toutes les propriétés même si l'une échoue, puis
 on renvoie la liste des échecs.
+
+### Passer en sans fil (FR-001)
+
+Seulement quand l'appli est `Connected(PC)` :
+1. C7 `enableWirelessDebugging()` ;
+2. C8 `readWirelessDebugging()` toutes les secondes, jusqu'à lire `1` ou jusqu'à 60 s
+   (`ConnectionPolicy.awaitWirelessEnabled`) ;
+3. puis connexion sans fil : découverte mDNS et TLS avec la même clé, sans appairage.
+
+Si l'utilisateur n'accepte pas dans les 60 s, l'appli reste `Connected(PC)`. Si la connexion
+sans fil échoue, l'appli se reconnecte au port 5555 sans passer par l'état `Failed`.
 
 ### Diagnostic (FR-024)
 

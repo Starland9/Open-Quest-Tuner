@@ -141,7 +141,7 @@ Disconnected ──────────────────────�
                                           ▼
                                      Connected(m) ──exec() échoue (connexion perdue)──► Disconnected
 
-reconnectLast() : Disconnected → Connecting(m) → Connected(m), ou retour à Disconnected (jamais Failed, FR-005)
+reconnectLast() : pour chaque tentative, Disconnected → Connecting(m) → Connected(m) ; si toutes échouent, Disconnected (jamais Failed, FR-005)
 Failed(...) → toute nouvelle tentative repasse par Pairing ou Connecting.
 ```
 
@@ -158,7 +158,8 @@ Ces règles sont pures et testées en JVM (principe IV).
 |---|---|
 | `classify(error, phase)` | Voir le tableau ci-dessous |
 | `connectWithProbe(connect, probe, reset)` | Au plus `1 + MAX_PROBE_RETRIES` (= 3) tentatives. Si `connect` renvoie faux : `NotAuthorized`. Un probe en échec déclenche `reset` puis une nouvelle tentative. Si tous les probes échouent : `ProbeFailed`. |
-| `reconnectTargets(lastMethod, lastWirelessPort)` | `WIRELESS` → `[Discover, Port(p)?]` ; `PC` → `[Port(5555)]` ; `null` → `[]` |
+| `awaitWirelessEnabled(read, timeoutMs = 60 000, pollMs = 1 000)` | Appelle `read` jusqu'à obtenir `true` ou jusqu'à la fin du délai, avec `delay(pollMs)` entre deux lectures. Une lecture en exception compte comme `false`. |
+| `reconnectAttempts(lastMethod, lastWirelessPort)` | Liste de `ReconnectAttempt(method, target)`. `WIRELESS` → sans-fil `[Discover, Port(p)?]` puis PC `[Port(5555)]` ; `PC` → PC puis sans-fil ; `null` → `[]` |
 
 Classification des exceptions par `classify(error, phase)`, où `phase` ∈ `PAIRING`, `DISCOVERY`,
 `CONNECT` :
@@ -174,6 +175,8 @@ Classification des exceptions par `classify(error, phase)`, où `phase` ∈ `PAI
 ## Résultats d'opérations (cœur)
 
 ```kotlin
+enum class WirelessSwitchResult { SWITCHED, NOT_ACCEPTED, WIRELESS_FAILED, NOT_CONNECTED }
+
 sealed interface TuneResult {
     data object Success : TuneResult
     data object NotConnected : TuneResult

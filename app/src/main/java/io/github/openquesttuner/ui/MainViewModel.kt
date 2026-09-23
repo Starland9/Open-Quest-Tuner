@@ -5,8 +5,10 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.openquesttuner.OqtApplication
+import io.github.openquesttuner.R
 import io.github.openquesttuner.core.ConnectionInput
 import io.github.openquesttuner.core.ConnectionState
+import io.github.openquesttuner.core.WirelessSwitchResult
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,6 +67,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun connectWireless(portText: String) {
         val port = if (portText.isBlank()) null else ConnectionInput.parsePort(portText) ?: return
         viewModelScope.launch { container.adb.connectWireless(port) }
+    }
+
+    private val _switchingToWireless = MutableStateFlow(false)
+    val switchingToWireless: StateFlow<Boolean> = _switchingToWireless.asStateFlow()
+
+    /** « Passer en sans fil » depuis une connexion via PC (FR-001). */
+    fun switchToWireless() {
+        if (_switchingToWireless.value) return
+        _switchingToWireless.value = true
+        viewModelScope.launch {
+            try {
+                when (container.adb.switchToWireless()) {
+                    WirelessSwitchResult.SWITCHED -> Unit // L'état « Connecté (sans fil) » suffit.
+                    WirelessSwitchResult.NOT_ACCEPTED -> showMessage(R.string.switch_not_accepted)
+                    WirelessSwitchResult.WIRELESS_FAILED -> showMessage(R.string.switch_wireless_failed)
+                    WirelessSwitchResult.NOT_CONNECTED -> showMessage(R.string.switch_not_connected)
+                }
+            } finally {
+                _switchingToWireless.value = false
+            }
+        }
     }
 
     fun connectPc() {

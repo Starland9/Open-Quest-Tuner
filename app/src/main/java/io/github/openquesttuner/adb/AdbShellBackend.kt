@@ -1,6 +1,7 @@
 package io.github.openquesttuner.adb
 
 import android.content.Context
+import android.util.Log
 import io.github.muntashirakon.adb.AdbStream
 import io.github.openquesttuner.core.ConnectPhase
 import io.github.openquesttuner.core.ConnectTarget
@@ -14,13 +15,16 @@ import io.github.openquesttuner.core.ShellCommand
 import io.github.openquesttuner.core.ShellOutput
 import io.github.openquesttuner.core.ShellResult
 import io.github.openquesttuner.core.ShellUnavailableException
+import io.github.openquesttuner.core.WirelessSwitchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
@@ -30,6 +34,7 @@ import kotlin.coroutines.cancellation.CancellationException
  *
  * Toutes les décisions (classification des échecs, probe et nouvelles tentatives, ordre de
  * reconnexion) viennent de [ConnectionPolicy] ; ce fichier ne fait que brancher libadb dessus.
+ * Les journaux ne contiennent que des étapes et des causes, jamais de matériel de clé (FR-027).
  */
 class AdbShellBackend(
     private val context: Context,
@@ -53,14 +58,14 @@ class AdbShellBackend(
             _state.value = ConnectionState.Pairing
             try {
                 manager.pair(LOCALHOST, port, code)
+                Log.i(TAG, "Appairage réussi")
                 true
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.value = ConnectionState.Failed(
-                    ConnectionMethod.WIRELESS,
-                    ConnectionPolicy.classify(e, ConnectPhase.PAIRING),
-                )
+                val reason = ConnectionPolicy.classify(e, ConnectPhase.PAIRING)
+                Log.w(TAG, "Appairage en échec : $reason (${e.javaClass.simpleName}: ${e.message})")
+                _state.value = ConnectionState.Failed(ConnectionMethod.WIRELESS, reason)
                 false
             }
         }
@@ -79,11 +84,40 @@ class AdbShellBackend(
     suspend fun connectPc(): Boolean =
         connect(ConnectionMethod.PC, ConnectTarget.Port(ConnectionPolicy.PC_PORT), silent = false)
 
-    /** Rejoue la dernière méthode réussie ; en cas d'échec l'état reste `Disconnected` (FR-005). */
+    /**
+     * Passage en sans fil depuis une connexion via PC (FR-001) : l'appli active le débogage sans
+     * fil, attend que l'utilisateur autorise le réseau dans la fenêtre d'Horizon OS, puis se
+     * connecte en TLS avec la même clé, sans appairage (docs/compatibility.md).
+     */
+    suspend fun switchToWireless(): WirelessSwitchResult {
+        val current = _state.value
+        if (current !is ConnectionState.Connected) return WirelessSwitchResult.NOT_CONNECTED
+        if (current.method == ConnectionMethod.WIRELESS) return WirelessSwitchResult.SWITCHED
+        try {
+            if (!exec(ShellCommand.enableWirelessDebugging()).isSuccess) return WirelessSwitchResult.WIRELESS_FAILED
+            val enabled = ConnectionPolicy.awaitWirelessEnabled(
+                read = { ShellOutput.isSettingEnabled(exec(ShellCommand.readWirelessDebugging()).output) },
+            )
+            if (!enabled) {
+                Log.i(TAG, "Passage en sans fil : réseau non autorisé dans le délai")
+                return WirelessSwitchResult.NOT_ACCEPTED
+            }
+        } catch (e: ShellUnavailableException) {
+            return WirelessSwitchResult.NOT_CONNECTED
+        }
+        if (connectWireless()) return WirelessSwitchResult.SWITCHED
+        Log.w(TAG, "Passage en sans fil en échec : retour au port ${ConnectionPolicy.PC_PORT}")
+        connect(ConnectionMethod.PC, ConnectTarget.Port(ConnectionPolicy.PC_PORT), silent = true)
+        return WirelessSwitchResult.WIRELESS_FAILED
+    }
+
+    /**
+     * Rejoue la dernière méthode réussie, puis l'autre en repli ; en cas d'échec l'état reste
+     * `Disconnected`, jamais `Failed` (FR-005).
+     */
     suspend fun reconnectLast() {
-        val method = prefs.lastMethod ?: return
-        for (target in ConnectionPolicy.reconnectTargets(method, prefs.lastWirelessPort)) {
-            if (connect(method, target, silent = true)) return
+        for (attempt in ConnectionPolicy.reconnectAttempts(prefs.lastMethod, prefs.lastWirelessPort)) {
+            if (connect(attempt.method, attempt.target, silent = true)) return
         }
     }
 
@@ -96,18 +130,11 @@ class AdbShellBackend(
 
     override suspend fun exec(command: ShellCommand): ShellResult = withContext(Dispatchers.IO) {
         if (_state.value !is ConnectionState.Connected) throw ShellUnavailableException()
-        try {
-            rawExec(command)
-        } catch (e: IOException) {
+        val result = runWithTimeout(EXEC_TIMEOUT_MS, command)
+        result.getOrElse { error ->
+            Log.w(TAG, "Commande en échec, connexion considérée perdue : ${error.javaClass.simpleName}")
             connectionLost()
-            throw ShellUnavailableException(e)
-        } catch (e: InterruptedException) {
-            connectionLost()
-            throw ShellUnavailableException(e)
-        } catch (e: IllegalStateException) {
-            // openStream enveloppe AdbPairingRequiredException dans une IllegalStateException.
-            connectionLost()
-            throw ShellUnavailableException(e)
+            throw ShellUnavailableException(error)
         }
     }
 
@@ -121,19 +148,23 @@ class AdbShellBackend(
             disconnectQuietly()
             _state.value = ConnectionState.Connecting(method)
             val phase = if (target is ConnectTarget.Discover) ConnectPhase.DISCOVERY else ConnectPhase.CONNECT
+            Log.i(TAG, "Connexion $method vers $target${if (silent) " (reconnexion)" else ""}")
             val outcome = try {
                 ConnectionPolicy.connectWithProbe(
                     connect = { openConnection(target) },
-                    probe = { runCatching { rawExec(ShellCommand.probe()) }.getOrNull()?.isSuccess == true },
+                    probe = { runWithTimeout(PROBE_TIMEOUT_MS, ShellCommand.probe()).getOrNull()?.isSuccess == true },
                     reset = { disconnectQuietly() },
                 )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 disconnectQuietly()
-                fail(method, ConnectionPolicy.classify(e, phase), silent)
+                val reason = ConnectionPolicy.classify(e, phase)
+                Log.w(TAG, "Connexion $method en échec : $reason (${e.javaClass.simpleName}: ${e.message})")
+                fail(method, reason, silent)
                 return@withLock false
             }
+            Log.i(TAG, "Connexion $method : $outcome")
             when (outcome) {
                 ProbeOutcome.Connected -> {
                     _state.value = ConnectionState.Connected(method)
@@ -161,6 +192,15 @@ class AdbShellBackend(
     private fun fail(method: ConnectionMethod, reason: FailureReason, silent: Boolean) {
         _state.value = if (silent) ConnectionState.Disconnected else ConnectionState.Failed(method, reason)
     }
+
+    /**
+     * libadb bloque sans limite si adbd ne répond pas sur un flux (constaté sur Quest 3 après un
+     * redémarrage) : le délai interrompt le thread bloqué, ce qui débloque ses `wait()` internes.
+     */
+    private suspend fun runWithTimeout(timeoutMs: Long, command: ShellCommand): Result<ShellResult> =
+        withTimeoutOrNull(timeoutMs) {
+            runInterruptible { runCatching { rawExec(command) } }
+        } ?: Result.failure(IOException("Pas de réponse d'adbd en $timeoutMs ms"))
 
     /** Exécution sans effet sur l'état ; seules les fabriques de [ShellCommand] produisent le texte. */
     private fun rawExec(command: ShellCommand): ShellResult =
@@ -198,8 +238,11 @@ class AdbShellBackend(
     }
 
     private companion object {
+        const val TAG = "OqtAdb"
         const val LOCALHOST = "127.0.0.1"
         const val DISCOVERY_TIMEOUT_MS = 10_000L
+        const val PROBE_TIMEOUT_MS = 2_000L
+        const val EXEC_TIMEOUT_MS = 15_000L
         const val READ_BUFFER_SIZE = 8 * 1024
     }
 }

@@ -38,12 +38,13 @@ Pour chaque scénario, noter ✅ ou ❌ et la version d'Horizon OS (Paramètres 
 
 | # | Étapes | Résultat attendu | Réf. |
 |---|---|---|---|
-| 1.1 | Débrancher le câble. Dans OpenQuestTuner, toucher « Ouvrir les options développeur ». Si rien ne s'ouvre, passer par les paramètres du casque, dont l'emplacement varie selon la version (research.md R4). Activer « Débogage sans fil », accepter « Toujours autoriser sur ce réseau », puis « Associer avec un code ». Placer ce panneau à côté d'OpenQuestTuner, saisir port et code, toucher « Associer ». Noter dans le journal de `docs/compatibility.md` si le bouton a fonctionné. | Le panneau des options s'ouvre à côté de l'appli ; « Connecté (sans fil) » en moins de 15 s, sans autre saisie | FR-001, FR-002, FR-007, SC-001 |
-| 1.2 | Recommencer avec un code faux. | Message « code refusé ou expiré » | US1-2 |
+| 1.1 | Méthode PC : `adb tcpip 5555` depuis le PC (ou `adb -s <série> tcpip 5555`), puis dans l'appli « Se connecter (via PC) », accepter l'invite en cochant « Toujours autoriser ». | « Connecté (via PC) » | FR-003 |
+| 1.2 | Toucher « Passer en sans fil » et, si la fenêtre Horizon OS apparaît, autoriser le réseau. | « Connecté (sans fil) », sans code d'appairage | FR-001 |
 | 1.3 | Fermer complètement l'appli, puis la rouvrir. | Reconnexion seule en moins de 5 s | FR-005, SC-007 |
-| 1.4 | Désactiver le débogage sans fil, rouvrir l'appli. | « Déconnecté », sans message d'erreur | US1-6 |
-| 1.5 | Méthode PC : `adb tcpip 5555` depuis le PC, débrancher, puis toucher « Se connecter (via PC) » et accepter l'invite dans le casque. | « Connecté (via PC) » | FR-003 |
-| 1.6 | Chronométrer 1.1 avec une personne qui découvre l'appli, sans aide. | Moins de 5 min | SC-001 |
+| 1.4 | Couper le débogage sans fil (`adb shell settings put global adb_wifi_enabled 0`) et fermer le port 5555 (redémarrage du casque ou `adb usb`), puis rouvrir l'appli. | « Déconnecté », sans message d'erreur | US1-9 |
+| 1.5 | Redémarrer le casque après 1.2, puis rouvrir l'appli. | Si le port 5555 est resté ouvert : reconnexion seule via PC (repli) | FR-005, US1-8 |
+| 1.6 | Chronométrer 1.1 et 1.2 avec une personne qui découvre l'appli, sans aide. | Moins de 5 min | SC-001 |
+| 1.7 | Seulement si la version d'Horizon OS affiche l'écran d'appairage : saisir port et code, « Associer » ; puis refaire avec un code faux. | « Connecté (sans fil) », puis « code refusé ou expiré » | FR-002, US1-4, US1-5 |
 
 ### US2 : profil puis « Appliquer et lancer »
 

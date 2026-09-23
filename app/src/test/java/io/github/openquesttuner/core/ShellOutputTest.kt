@@ -79,6 +79,12 @@ class ShellOutputTest {
     }
 
     @Test
+    fun `un reglage vaut actif seulement s'il lit 1`() {
+        assertTrue(ShellOutput.isSettingEnabled("1\n"))
+        listOf("0", "null", "", "10").forEach { assertFalse(it, ShellOutput.isSettingEnabled(it)) }
+    }
+
+    @Test
     fun `detecte une erreur de lancement d'am start`() {
         assertTrue(
             ShellOutput.isLaunchError(

@@ -12,45 +12,61 @@
 
 ### User Story 1 - Connecter l'appli au casque (Priority: P1)
 
+*Amendée le 2026-09-23 après essai sur Quest 3 (vros 207) : l'écran Android d'appairage n'est pas
+accessible dans le casque, mais une clé autorisée une fois suffit ensuite pour le sans-fil
+(docs/compatibility.md).*
+
 Dans son casque, l'utilisateur ouvre OpenQuestTuner pour la première fois. L'appli lui explique
-qu'elle a besoin d'un accès de débogage et lui propose deux méthodes.
+qu'elle a besoin d'un accès de débogage, qui s'obtient en deux temps.
 
-- **Sans PC (recommandée)** : l'utilisateur ouvre l'écran Développeur du casque à côté de l'appli,
-  active le débogage sans fil, demande un code d'appairage, puis saisit dans l'appli le code et le
-  port affichés. L'appli s'appaire, puis se connecte d'elle-même.
-- **Avec un PC** : l'utilisateur branche son casque, lance une fois la commande qui ouvre le port
-  de débogage réseau, puis touche « Se connecter » dans l'appli. Il accepte l'invite
-  d'autorisation qui apparaît dans le casque.
+- **Première autorisation, une seule fois, avec un PC ou un téléphone** : l'utilisateur branche
+  son casque, lance une fois la commande qui ouvre le port de débogage réseau, puis touche
+  « Se connecter (via PC) » dans l'appli. Il accepte l'invite d'autorisation du casque en cochant
+  « Toujours autoriser ».
+- **Passage en sans fil** : une fois connecté, l'utilisateur touche « Passer en sans fil ».
+  L'appli active elle-même le débogage sans fil ; la première fois sur ce réseau, Horizon OS
+  demande de l'autoriser. L'appli se connecte alors sans fil, sans code d'appairage et sans PC.
+- **Appairage par code, en secours** : si sa version d'Horizon OS affiche l'écran « Débogage sans
+  fil » avec un code, l'utilisateur peut aussi s'appairer sans PC en saisissant ce code et ce port.
 
-Lors des ouvertures suivantes, l'appli se reconnecte seule avec la dernière méthode qui a
-fonctionné.
+Lors des ouvertures suivantes, l'appli se reconnecte seule : d'abord avec la dernière méthode qui
+a fonctionné, puis avec l'autre.
 
 **Why this priority**: sans connexion, aucun réglage ne peut être appliqué. C'est le prérequis de
-toute la valeur du produit. La méthode sans PC est aussi ce qui distingue le projet.
+toute la valeur du produit. Grâce au passage en sans fil, le PC ne sert qu'une seule fois.
 
-**Independent Test**: sur un Quest 3 en mode développeur, suivre les instructions de l'appli pour
-chacune des deux méthodes. L'état passe à « Connecté » avec la méthode utilisée. Fermer puis
-rouvrir l'appli : l'état redevient « Connecté » sans aucune action.
+**Independent Test**: sur un Quest 3 en mode développeur :
+1. méthode PC : l'état passe à « Connecté (via PC) » ;
+2. « Passer en sans fil » : l'état passe à « Connecté (sans fil) », sans code ;
+3. fermer puis rouvrir l'appli : l'état redevient « Connecté » sans aucune action.
 
 **Acceptance Scenarios**:
 
-1. **Given** le débogage sans fil activé et un code d'appairage affiché par le casque, **When**
-   l'utilisateur saisit ce code et ce port puis touche « Associer », **Then** l'appli confirme
-   l'appairage et passe à l'état « Connecté (sans fil) » sans autre saisie.
-2. **Given** un code d'appairage erroné ou expiré, **When** l'utilisateur touche « Associer »,
+1. **Given** le port de débogage réseau ouvert depuis un PC, **When** l'utilisateur touche
+   « Se connecter (via PC) » puis accepte l'invite d'autorisation du casque, **Then** l'état passe
+   à « Connecté (via PC) ».
+2. **Given** l'appli connectée via PC, **When** l'utilisateur touche « Passer en sans fil » et,
+   si Horizon OS le demande, autorise le débogage sans fil sur ce réseau, **Then** l'état passe à
+   « Connecté (sans fil) », sans aucun code d'appairage.
+3. **Given** l'appli connectée via PC, **When** l'utilisateur touche « Passer en sans fil » mais
+   n'autorise pas le réseau dans les 60 secondes, **Then** l'appli reste « Connecté (via PC) » et
+   explique comment réessayer.
+4. **Given** une version d'Horizon OS qui affiche un code d'appairage, **When** l'utilisateur
+   saisit ce code et ce port puis touche « Associer », **Then** l'appli confirme l'appairage et
+   passe à « Connecté (sans fil) » sans autre saisie.
+5. **Given** un code d'appairage erroné ou expiré, **When** l'utilisateur touche « Associer »,
    **Then** l'appli indique que le code est refusé ou expiré et invite à en demander un nouveau.
-3. **Given** le port de débogage réseau ouvert depuis un PC, **When** l'utilisateur touche
-   « Se connecter » puis accepte l'invite d'autorisation du casque, **Then** l'état passe à
-   « Connecté (via PC) ».
-4. **Given** aucune méthode disponible (port fermé, débogage sans fil désactivé), **When**
+6. **Given** aucune méthode disponible (port fermé, débogage sans fil désactivé), **When**
    l'utilisateur tente de se connecter, **Then** l'appli affiche une cause compréhensible et
    l'étape à refaire.
-5. **Given** une connexion réussie lors d'une session précédente et la même méthode toujours
+7. **Given** une connexion réussie lors d'une session précédente et la même méthode toujours
    disponible, **When** l'utilisateur rouvre l'appli, **Then** elle se reconnecte seule, sans
    bloquer l'interface.
-6. **Given** la méthode précédente n'est plus disponible (casque redémarré par exemple), **When**
-   l'utilisateur rouvre l'appli, **Then** l'état affiche simplement « Déconnecté », sans message
-   d'erreur alarmant.
+8. **Given** la dernière méthode n'est plus disponible mais l'autre l'est (par exemple, après un
+   redémarrage, le sans-fil est coupé mais le port réseau est resté ouvert), **When**
+   l'utilisateur rouvre l'appli, **Then** elle se reconnecte seule avec l'autre méthode.
+9. **Given** aucune méthode n'est disponible, **When** l'utilisateur rouvre l'appli, **Then**
+   l'état affiche simplement « Déconnecté », sans message d'erreur alarmant.
 
 ---
 
@@ -186,8 +202,11 @@ lancer », et comparer les valeurs affichées avec le profil.
   possible.
 - **Invite d'autorisation refusée ou ignorée** dans le casque : la tentative échoue au bout d'un
   délai raisonnable, avec un message qui explique comment réessayer.
-- **Appairage déjà fait mais débogage sans fil désactivé** : l'appli indique d'aller le réactiver
-  dans l'écran Développeur, sans demander de nouvel appairage.
+- **Débogage sans fil coupé**, par exemple après un redémarrage du casque : l'appli se reconnecte
+  par le port réseau s'il est resté ouvert, sinon elle affiche « Déconnecté ». Une fois
+  reconnectée, « Passer en sans fil » réactive le sans-fil ; il n'y a jamais besoin de réappairer.
+- **Réseau refusé** dans la fenêtre d'Horizon OS « autoriser le débogage sans fil » : l'appli
+  reste connectée via PC et explique comment réessayer.
 - **Découverte automatique du port de connexion impossible** : l'utilisateur peut saisir le port
   affiché par l'écran « Débogage sans fil ».
 - **Saisie invalide** (code qui ne fait pas 6 chiffres, port hors de 1 à 65535) : le bouton reste
@@ -214,25 +233,30 @@ lancer », et comparer les valeurs affichées avec le profil.
 
 **Connexion**
 
-- **FR-001**: L'appli DOIT permettre l'appairage avec le débogage sans fil du casque, sans PC, en
-  saisissant le code d'appairage à 6 chiffres et le port affichés par l'écran Développeur du
-  casque.
-- **FR-002**: Après un appairage réussi, l'appli DOIT se connecter automatiquement en trouvant
-  elle-même le port de connexion. Si elle n'y parvient pas, l'utilisateur DOIT pouvoir saisir ce
-  port manuellement.
-- **FR-003**: L'appli DOIT permettre de se connecter au port de débogage réseau 5555 ouvert
-  depuis un PC, et guider l'utilisateur pour accepter l'invite d'autorisation du casque.
+- **FR-001**: Une fois connectée par la méthode PC, l'appli DOIT permettre de passer en sans fil
+  en un geste (« Passer en sans fil »). Elle active elle-même le débogage sans fil du casque, puis
+  s'y connecte avec la même autorisation, sans code d'appairage. Si Horizon OS demande d'autoriser
+  le réseau, l'appli attend la réponse de l'utilisateur jusqu'à 60 secondes ; sans réponse, elle
+  reste connectée via PC.
+- **FR-002**: L'appli DOIT aussi permettre l'appairage par code (6 chiffres et port), pour les
+  versions d'Horizon OS qui affichent cet écran. Après un appairage réussi, elle se connecte seule
+  en trouvant le port de connexion ; si elle n'y parvient pas, l'utilisateur DOIT pouvoir saisir
+  ce port manuellement.
+- **FR-003**: L'appli DOIT permettre de se connecter au port de débogage réseau 5555 ouvert depuis
+  un PC ou un téléphone, et guider l'utilisateur pour accepter l'invite d'autorisation du casque
+  en cochant « Toujours autoriser ». C'est la méthode de première connexion.
 - **FR-004**: L'appli DOIT afficher en permanence l'état de connexion :
   - « Déconnecté » ;
   - « Connexion en cours » ;
   - « Connecté », avec la méthode utilisée ;
   - « Échec », avec une cause compréhensible et l'action suggérée.
-- **FR-005**: Au démarrage, l'appli DOIT tenter de se reconnecter avec la dernière méthode
-  réussie, en arrière-plan. Si cette tentative échoue, l'état DOIT être « Déconnecté », sans
-  message d'erreur.
+- **FR-005**: Au démarrage, l'appli DOIT tenter de se reconnecter en arrière-plan, d'abord avec la
+  dernière méthode réussie, puis avec l'autre. Si toutes les tentatives échouent, l'état DOIT être
+  « Déconnecté », sans message d'erreur.
 - **FR-006**: L'utilisateur DOIT pouvoir se déconnecter.
 - **FR-007**: Chaque méthode de connexion DOIT être accompagnée d'instructions pas à pas, en
-  langage simple, affichées dans l'appli.
+  langage simple, affichées dans l'appli. La méthode PC est présentée comme la première étape,
+  l'appairage par code comme un secours.
 
 **Liste des jeux**
 
@@ -333,8 +357,9 @@ lancer », et comparer les valeurs affichées avec le profil.
 
 ### Measurable Outcomes
 
-- **SC-001**: Un utilisateur qui n'a jamais utilisé les outils de débogage réussit sa première
-  connexion sans PC en moins de 5 minutes, en suivant uniquement les instructions de l'appli.
+- **SC-001**: Un utilisateur qui découvre l'appli, avec un PC à disposition, réussit la première
+  configuration complète (autorisation via PC, puis passage en sans fil) en moins de 5 minutes, en
+  suivant uniquement les instructions de l'appli.
 - **SC-002**: Une fois connecté, créer un profil pour un jeu et le lancer prend moins d'une
   minute depuis l'ouverture de l'appli.
 - **SC-003**: Le lancement du jeu commence moins de 5 secondes après « Appliquer et lancer », hors
@@ -357,11 +382,17 @@ lancer », et comparer les valeurs affichées avec le profil.
 - Le casque est en mode développeur (compte développeur Meta), ce qui est aussi nécessaire pour
   installer l'appli, distribuée hors store pour cette version.
 - Le casque est connecté à un réseau Wi-Fi : le débogage sans fil l'exige.
-- Horizon OS propose le débogage sans fil avec code d'appairage (constaté à partir de la v83,
-  dans l'ancienne numérotation ; les versions sont numérotées 2.x depuis 2026).
-  Sinon, la méthode via PC reste disponible.
-- Horizon OS empêche les applis d'ouvrir l'écran d'appairage : l'utilisateur l'ouvre lui-même
-  depuis les paramètres, et place les deux panneaux côte à côte.
+- Horizon OS ne donne pas accès, dans le casque, à l'écran Android « Débogage sans fil » :
+  l'option est absente des Paramètres Quest et l'écran développeur d'Android est désactivé
+  (constaté sur Quest 3, vros 207). La toute première autorisation se fait donc avec un PC ou un
+  téléphone équipé d'ADB. L'appairage par code reste proposé pour les versions qui affichent cet
+  écran (signalé à partir de la v83, dans l'ancienne numérotation).
+- Une clé autorisée une fois (« Toujours autoriser ») est ensuite acceptée en sans fil (TLS) sans
+  appairage. Activer le débogage sans fil déclenche une fenêtre Horizon OS « autoriser sur ce
+  réseau » la première fois (constaté sur Quest 3, vros 207).
+- Le débogage sans fil est coupé à chaque redémarrage du casque. Le port réseau ouvert depuis un PC
+  a survécu au redémarrage lors d'un essai, ce qui reste à reconfirmer. La réactivation
+  automatique du sans-fil après un redémarrage est hors périmètre de cette fonctionnalité.
 - Les jeux ne lisent ces réglages qu'à leur démarrage. C'est pourquoi l'appli arrête un jeu en
   cours avant de le relancer.
 - Les réglages sont des paramètres de débogage non documentés par Meta : leur effet peut varier
@@ -374,7 +405,7 @@ lancer », et comparer les valeurs affichées avec le profil.
   OpenQuestTuner lui-même, sont exclues.
 - Hors périmètre de cette fonctionnalité :
   - application automatique d'un profil quand un jeu est lancé depuis le menu du Quest ;
-  - reconnexion automatique après un redémarrage du casque ;
+  - réactivation automatique du débogage sans fil après un redémarrage du casque ;
   - réglages de capture vidéo ;
   - overlay de performances ;
   - profils communautaires et import/export.

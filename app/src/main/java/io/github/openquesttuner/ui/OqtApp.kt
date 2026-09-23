@@ -38,6 +38,7 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box(Modifier.fillMaxSize()) {
             val connectionState by vm.connectionState.collectAsState()
+            val switchingToWireless by vm.switchingToWireless.collectAsState()
             when (backStack.last()) {
                 Screen.Games -> GamesScreen(
                     actions = {
@@ -56,6 +57,8 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                     onConnectPc = vm::connectPc,
                     onDisconnect = vm::disconnect,
                     onDeveloperOptionsUnavailable = { vm.showMessage(R.string.open_dev_options_failed) },
+                    switchingToWireless = switchingToWireless,
+                    onSwitchToWireless = vm::switchToWireless,
                 )
                 // Écran branché par l'US2.
                 is Screen.Profile -> Unit

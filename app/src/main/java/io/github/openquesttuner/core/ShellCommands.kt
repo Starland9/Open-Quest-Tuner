@@ -53,6 +53,15 @@ class ShellCommand private constructor(val text: String) {
         /** C6 : vérifie une connexion tout juste établie (libadb-android #34, research.md R3). */
         fun probe(): ShellCommand = ShellCommand("true")
 
+        /**
+         * C7 : active le débogage sans fil. Horizon OS demande d'abord d'autoriser le réseau ; le
+         * réglage revient à 0 à chaque redémarrage, il n'est donc pas persistant (FR-026).
+         */
+        fun enableWirelessDebugging(): ShellCommand = ShellCommand("settings put global adb_wifi_enabled 1")
+
+        /** C8 : lit l'état du débogage sans fil (voir [ShellOutput.isSettingEnabled]). */
+        fun readWirelessDebugging(): ShellCommand = ShellCommand("settings get global adb_wifi_enabled")
+
         private fun requirePackage(packageName: String) {
             require(isValidPackageName(packageName)) { "Nom de paquet invalide : $packageName" }
         }
