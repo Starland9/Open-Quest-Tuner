@@ -193,3 +193,29 @@ sealed interface TuneStep {
 data class ResetResult(val failed: List<QuestProperty>)      // vide = succès complet
 data class Diagnostic(val active: Map<String, String>)       // clés debug.oculus.* non vides, triées
 ```
+
+## ThermalLevel : état thermique (cœur, amendement de l'US5)
+
+```kotlin
+enum class ThermalLevel { NONE, LIGHT, MODERATE, SEVERE, CRITICAL, EMERGENCY, SHUTDOWN, UNKNOWN }
+```
+
+| Règle | Détail |
+|---|---|
+| Conversion | `ThermalLevel.fromAndroidStatus(code)` : 0 à 6 dans l'ordre de l'enum ; toute autre valeur donne `UNKNOWN` |
+| Avertissement | `warning` est vrai de `MODERATE` à `SHUTDOWN`, et faux pour `NONE`, `LIGHT` et `UNKNOWN` (FR-032) |
+| Source | `PowerManager` côté Android (research.md R10). Sans connexion ADB. |
+
+## Profil actif sur le casque (cœur, amendement de l'US5)
+
+`GameProfile.isActiveOn(active: Map<String, String>): Boolean`, où `active` est la map de
+`Diagnostic` :
+- vrai si, pour chacune des 7 propriétés de `toPropertyValues()`, la valeur attendue
+  (`value?.toString()`) est égale à `active[property.key]` ;
+- un réglage `null` (« Par défaut du jeu ») exige donc une propriété absente, puisque le
+  diagnostic ne garde que les valeurs non vides ;
+- les autres clés `debug.oculus.*` du système sont ignorées (par exemple
+  `extraKickoffHeadroom`).
+
+L'écran profil compare le brouillon affiché, et non le profil enregistré, pour que l'indicateur
+décrive exactement ce que l'utilisateur voit (FR-033).

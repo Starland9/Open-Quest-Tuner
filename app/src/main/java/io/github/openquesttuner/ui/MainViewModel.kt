@@ -9,9 +9,11 @@ import io.github.openquesttuner.OqtApplication
 import io.github.openquesttuner.R
 import io.github.openquesttuner.core.ConnectionInput
 import io.github.openquesttuner.core.ConnectionState
+import io.github.openquesttuner.core.Diagnostic
 import io.github.openquesttuner.core.GameProfile
 import io.github.openquesttuner.core.QuestModel
 import io.github.openquesttuner.core.QuestProperty
+import io.github.openquesttuner.core.ThermalLevel
 import io.github.openquesttuner.core.TuneResult
 import io.github.openquesttuner.core.TuneStep
 import io.github.openquesttuner.core.WirelessSwitchResult
@@ -78,11 +80,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      */
     val tuningPackage: StateFlow<String?> = _tuningPackage.asStateFlow()
 
+    val thermalLevel: StateFlow<ThermalLevel> = container.thermal.level
+
+    private val _diagnostic = MutableStateFlow<Diagnostic?>(null)
+
+    /** Dernière lecture des propriétés actives ; `null` hors connexion ou si la lecture a échoué. */
+    val diagnostic: StateFlow<Diagnostic?> = _diagnostic.asStateFlow()
+
     init {
         refreshGames()
+        // Relecture à chaque connexion ; hors connexion, l'état du casque est inconnu.
+        viewModelScope.launch {
+            connectionState.collect { state ->
+                if (state is ConnectionState.Connected) refreshDiagnostic() else _diagnostic.value = null
+            }
+        }
     }
 
     fun navigate(screen: Screen) {
+        // L'indicateur « actif sur le casque » et la carte Diagnostic partent d'une lecture fraîche.
+        if (screen is Screen.Profile || screen == Screen.Connection) refreshDiagnostic()
         _backStack.update { stack -> if (stack.last() == screen) stack else stack + screen }
     }
 
@@ -196,6 +213,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 onTuneResult(game, result)
             } finally {
                 _tuningPackage.value = null
+                refreshDiagnostic()
             }
         }
     }
@@ -222,8 +240,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } finally {
                 _resetting.value = false
+                refreshDiagnostic()
             }
         }
+    }
+
+    // --- Diagnostic (US5)
+
+    fun refreshDiagnostic() {
+        if (connectionState.value !is ConnectionState.Connected) return
+        viewModelScope.launch { _diagnostic.value = container.tuner.readDiagnostic() }
     }
 
     private suspend fun persist(packageName: String, profile: GameProfile): Boolean = try {

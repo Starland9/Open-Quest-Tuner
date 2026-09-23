@@ -775,37 +775,70 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
 
 ---
 
-## Phase 7: User Story 5 - Diagnostiquer les réglages actifs (Priority: P3)
+## Phase 7: User Story 5 - Diagnostiquer les réglages actifs et l'état thermique (Priority: P3)
 
-**Goal**: afficher en lecture seule les propriétés `debug.oculus.*` actives (FR-024).
+*Amendée le 2026-09-23 (spec US5, FR-031 à FR-033, research.md R10) : état thermique lisible sans
+connexion, et indicateur « actif sur le casque » dans l'écran profil.*
 
-**Independent Test**: scénario 5.1 de [quickstart.md](quickstart.md).
+**Goal** :
+- afficher en lecture seule les propriétés `debug.oculus.*` actives (FR-024) ;
+- afficher l'état thermique, avec un avertissement à partir de « modéré » (FR-031, FR-032) ;
+- indiquer dans le profil si les réglages affichés sont actifs sur le casque (FR-033).
+
+**Independent Test**: scénarios 5.1 et 5.3 à 5.5 de [quickstart.md](quickstart.md).
 
 ### Tests for User Story 5
 
-- [ ] T070 [US5] Écrire `app/src/test/java/io/github/openquesttuner/core/TunerDiagnosticTest.kt`
+- [X] T070 [US5] Écrire `app/src/test/java/io/github/openquesttuner/core/TunerDiagnosticTest.kt`
   avec `FakeShellBackend` :
   - `readDiagnostic()` exécute uniquement `readProperties()` ;
   - sur une sortie `getprop` réaliste (mélange de propriétés), il renvoie
     `Diagnostic(active = …)` avec seulement les clés `debug.oculus.*` non vides, triées ;
   - il renvoie `null` si l'appli n'est pas connectée.
+- [X] T071 [P] [US5] Écrire `app/src/test/java/io/github/openquesttuner/core/ThermalLevelTest.kt` :
+  - `fromAndroidStatus` convertit 0 à 6 dans l'ordre de l'enum ;
+  - -1 et 7 donnent `UNKNOWN` ;
+  - `warning` est vrai de `MODERATE` à `SHUTDOWN`, et faux pour `NONE`, `LIGHT` et `UNKNOWN`.
+- [X] T072 [P] [US5] Écrire `app/src/test/java/io/github/openquesttuner/core/ProfileActiveTest.kt`
+  pour `GameProfile.isActiveOn(active)` ([data-model.md](data-model.md)) :
+  - un profil complet est actif sur la map exacte de ses 7 valeurs (booléen encodé en `0`/`1`,
+    fovéal en code 0 à 4) ;
+  - les clés système étrangères aux 7 propriétés sont ignorées ;
+  - un réglage `null` exige une propriété absente ;
+  - le profil vide est actif sur une map vide ;
+  - une seule valeur différente donne faux.
 
 ### Implementation for User Story 5
 
-- [ ] T071 [US5] Ajouter `suspend fun readDiagnostic(): Diagnostic?` à
+- [X] T073 [US5] Ajouter `suspend fun readDiagnostic(): Diagnostic?` et le type `Diagnostic` à
   `app/src/main/java/io/github/openquesttuner/core/Tuner.kt`. Faire passer T070.
-- [ ] T072 [US5] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter
-  `diagnostic: StateFlow<Diagnostic?>` et `refreshDiagnostic()`. Relire automatiquement après
-  « Appliquer et lancer » et après « Tout réinitialiser ».
-- [ ] T073 [US5] Dans `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt`, ajouter
+- [X] T074 [P] [US5] Créer `app/src/main/java/io/github/openquesttuner/core/ThermalLevel.kt`. Faire
+  passer T071.
+- [X] T075 [P] [US5] Ajouter `fun isActiveOn(active: Map<String, String>): Boolean` à
+  `app/src/main/java/io/github/openquesttuner/core/GameProfile.kt`. Faire passer T072.
+- [X] T076 [P] [US5] Créer `app/src/main/java/io/github/openquesttuner/thermal/ThermalMonitor.kt` :
+  `level: StateFlow<ThermalLevel>` construit à partir de `PowerManager.getCurrentThermalStatus()`
+  et de `addThermalStatusListener(Executor, …)`, avec retrait de l'écouteur à l'arrêt, `UNKNOWN`
+  en cas d'erreur, et partagé dans `appScope`. L'ajouter dans `AppContainer.kt`.
+- [X] T077 [US5] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter :
+  - `diagnostic: StateFlow<Diagnostic?>` et `refreshDiagnostic()`, avec une relecture
+    automatique à la connexion, après « Appliquer et lancer » ou « Lancer », après « Tout
+    réinitialiser », et à l'ouverture d'un profil ;
+  - `thermalLevel`, en délégation à `ThermalMonitor`.
+- [X] T078 [US5] Dans `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt`, ajouter
   une carte « Diagnostic » :
-  - liste `clé = valeur` en police mono ;
-  - bouton « Actualiser » ;
-  - texte « Aucun réglage actif » si la map est vide ;
-  - carte masquée hors connexion.
-- [ ] T074 [US5] Ajouter les chaînes de l'US5 dans `app/src/main/res/values/strings.xml` **et**
+  - ligne « État thermique », toujours visible, même hors connexion ;
+  - si l'appli est connectée : liste `clé = valeur` en police mono, bouton « Actualiser », et
+    texte « Aucun réglage actif » si la map est vide ;
+  - hors connexion : invitation à se connecter pour lire les réglages actifs.
+- [X] T079 [US5] Créer `app/src/main/java/io/github/openquesttuner/ui/components/ThermalBanner.kt`
+  (avertissement FR-032, affiché si `warning`) et l'afficher en tête de `GamesScreen.kt` et de
+  `ProfileScreen.kt`. Dans `ProfileScreen.kt`, ajouter l'indicateur FR-033 sous la ligne « profil
+  enregistré », quand l'appli est connectée et le diagnostic lu : « Actif sur le casque » si
+  `draft.isActiveOn(diagnostic.active)`, sinon « Non appliqué ». Brancher le tout dans `OqtApp.kt`.
+- [ ] T080 [US5] Ajouter les chaînes de l'US5 dans `app/src/main/res/values/strings.xml` **et**
   `app/src/main/res/values-fr/strings.xml`, lancer `./gradlew test assembleDebug`, puis dérouler
-  le scénario 5.1 de [quickstart.md](quickstart.md).
+  les scénarios 5.1 et 5.3 à 5.5 de [quickstart.md](quickstart.md).
 
 **Checkpoint**: les 5 user stories fonctionnent.
 
@@ -815,14 +848,14 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
 
 **Purpose**: garde-fous de la constitution, documentation, validation complète.
 
-- [ ] T075 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/CoreArchitectureTest.kt` : il
+- [ ] T081 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/CoreArchitectureTest.kt` : il
   parcourt `app/src/main/java/io/github/openquesttuner/core/**/*.kt` et échoue si un fichier
   contient `import android.` ou `import androidx.` (principe IV).
-- [ ] T076 [P] Écrire `app/src/test/java/io/github/openquesttuner/StringsParityTest.kt` : il parse
+- [ ] T082 [P] Écrire `app/src/test/java/io/github/openquesttuner/StringsParityTest.kt` : il parse
   `app/src/main/res/values/strings.xml` et `app/src/main/res/values-fr/strings.xml`, puis échoue
   si les ensembles de `name` diffèrent, en ignorant les chaînes `translatable="false"` comme
   `app_name` (FR-029, SC-010).
-- [ ] T077 [P] Créer `README.md` en anglais, pour le public GitHub, avec un paragraphe
+- [ ] T083 [P] Créer `README.md` en anglais, pour le public GitHub, avec un paragraphe
   d'introduction en français. Contenu :
   - ce que fait l'appli et sa licence GPL-3.0 ;
   - avertissement sur les propriétés non documentées et « expérimentales » ;
@@ -831,12 +864,12 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
   - build (`./gradlew test assembleDebug`) ;
   - liens vers `docs/compatibility.md` et `specs/001-game-profiles-mvp/` ;
   - mention clean-room : aucun lien avec Quest Games Optimizer.
-- [ ] T078 Retirer le commentaire « Sync Impact Report » en tête de `.specify/memory/constitution.md`
+- [ ] T084 Retirer le commentaire « Sync Impact Report » en tête de `.specify/memory/constitution.md`
   : c'est une note temporaire à supprimer avant le premier commit.
-- [ ] T079 Lancer `./gradlew test assembleDebug lintDebug` et corriger toutes les erreurs de lint,
+- [ ] T085 Lancer `./gradlew test assembleDebug lintDebug` et corriger toutes les erreurs de lint,
   notamment `MissingTranslation`. Les avertissements restants sont notés dans la description du
   commit.
-- [ ] T080 Validation complète sur Quest 3 (**nécessite le casque**) :
+- [ ] T086 Validation complète sur Quest 3 (**nécessite le casque**) :
   - dérouler tout [quickstart.md](quickstart.md), y compris 5.2 (langues) et la section 5
     (réseau, SC-009) ;
   - remplir `docs/compatibility.md` ;
@@ -866,14 +899,15 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
 
 ### Fichiers partagés (donc séquentiels, jamais [P] entre eux)
 
-- `ui/MainViewModel.kt` : T020, T033, T054, T061, T066, T072.
-- `core/Tuner.kt` : T050, T060, T071.
-- `ui/ConnectionScreen.kt` : T034, T062, T073.
-- `ui/GamesScreen.kt` : T021, T035, T055, T067.
-- `ui/OqtApp.kt` : T021, T035, T057.
-- `AppContainer.kt` : T019, T031, T052.
+- `ui/MainViewModel.kt` : T020, T033, T054, T061, T066, T077.
+- `core/Tuner.kt` : T050, T060, T073.
+- `ui/ConnectionScreen.kt` : T034, T062, T078.
+- `ui/GamesScreen.kt` : T021, T035, T055, T067, T079.
+- `ui/OqtApp.kt` : T021, T035, T057, T079.
+- `ui/ProfileScreen.kt` : T056, T068, T079. `core/GameProfile.kt` : T014, T075.
+- `AppContainer.kt` : T019, T031, T052, T076.
 - `core/SearchKey.kt` : T048, T065. `core/SearchKeyTest.kt` : T047, T064.
-- `strings.xml` (en et fr) : T006, T036, T057, T063, T069, T074.
+- `strings.xml` (en et fr) : T006, T036, T057, T063, T069, T080.
 
 ### Within Each User Story
 
@@ -942,4 +976,4 @@ Le MVP contient les trois stories P1 :
   d'intégration de la constitution).
 - Tout ajout de commande shell doit d'abord amender
   [contracts/shell-commands.md](contracts/shell-commands.md) (principe I).
-- Les tâches T044, T058, T063, T069, T074 et T080 exigent le Quest 3 physique.
+- Les tâches T044, T058, T063, T069, T080 et T086 exigent le Quest 3 physique.

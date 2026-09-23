@@ -70,6 +70,9 @@ Pour chaque scénario, noter ✅ ou ❌ et la version d'Horizon OS (Paramètres 
 | 4.1 | Après 2.3, « Tout réinitialiser ». | `getprop` ne montre plus de valeur non vide pour les 7 clés | FR-023, SC-005 |
 | 5.1 | Ouvrir le diagnostic après 2.3, puis après 4.1. | Il affiche les valeurs du profil, puis « aucun réglage actif » | FR-024 |
 | 5.2 | Passer le système en français, puis en anglais. | Tous les textes traduits | FR-029, SC-010 |
+| 5.3 | Ouvrir le diagnostic, connecté puis déconnecté, et comparer avec `adb shell dumpsys thermalservice \| grep "Thermal Status"`. | L'état thermique est affiché dans les deux cas et correspond au système | FR-031, SC-011 |
+| 5.4 | Session chargée (niveaux élevés, casque branché) jusqu'à « Thermal Status: 2 ». | Avertissement en moins de 5 s sur la liste et sur le profil ouvert | FR-032, SC-011 |
+| 5.5 | Ouvrir le profil du jeu de référence après 2.3, puis après 4.1. | « Actif sur le casque », puis « Non appliqué » | FR-033, SC-012 |
 
 ## 4. Vérifier l'effet réel d'une propriété (tableau de compatibilité)
 

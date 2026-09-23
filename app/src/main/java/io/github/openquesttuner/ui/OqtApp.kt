@@ -46,6 +46,8 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
             val filteredGames by vm.filteredGames.collectAsState()
             val query by vm.query.collectAsState()
             val tuningPackage by vm.tuningPackage.collectAsState()
+            val thermalLevel by vm.thermalLevel.collectAsState()
+            val diagnostic by vm.diagnostic.collectAsState()
             val resetting by vm.resetting.collectAsState()
             when (val screen = backStack.last()) {
                 Screen.Games -> GamesScreen(
@@ -61,6 +63,7 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                     onLaunch = vm::quickLaunch,
                     onRefresh = vm::refreshGames,
                     onOpenConnection = { vm.navigate(Screen.Connection) },
+                    thermalLevel = thermalLevel,
                     actions = {
                         ConnectionBadge(
                             state = connectionState,
@@ -81,6 +84,9 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                     onSwitchToWireless = vm::switchToWireless,
                     resetting = resetting,
                     onResetAll = vm::resetAll,
+                    thermalLevel = thermalLevel,
+                    diagnostic = diagnostic,
+                    onRefreshDiagnostic = vm::refreshDiagnostic,
                 )
                 is Screen.Profile -> {
                     // Le ViewModel retire l'écran si le jeu disparaît de la liste (désinstallation).
@@ -97,6 +103,8 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                             onApplyAndLaunch = { vm.applyAndLaunch(game, it) },
                             onOpenConnection = { vm.navigate(Screen.Connection) },
                             onDelete = { vm.deleteProfile(game.packageName) },
+                            thermalLevel = thermalLevel,
+                            diagnostic = diagnostic,
                         )
                     }
                 }

@@ -88,6 +88,10 @@ sans fil échoue, l'appli se reconnecte au port 5555 sans passer par l'état `Fa
 C5, puis filtrage et tri par clé côté appli. Les propriétés à valeur vide sont considérées comme
 inactives et ne sont pas affichées.
 
+La même lecture sert à l'indicateur « actif sur le casque » de l'écran profil (FR-033,
+amendement de l'US5). Aucune nouvelle commande n'est ajoutée pour cela. L'état thermique (FR-031)
+ne passe pas par le shell : il est lu avec l'API Android (research.md R10).
+
 ## À vérifier sur casque (voir research.md)
 
 - C2 : `setprop <clé> ''` est la méthode officielle de Meta (research.md R7). Reste à confirmer

@@ -16,6 +16,9 @@ sealed interface TuneStep {
 /** Résultat de « Tout réinitialiser » ; une liste vide signifie un succès complet. */
 data class ResetResult(val failed: List<QuestProperty>)
 
+/** Propriétés `debug.oculus.*` non vides lues sur le casque, triées par clé (FR-024). */
+data class Diagnostic(val active: Map<String, String>)
+
 /** Séquences de commandes de contracts/shell-commands.md, sur un [ShellBackend] quelconque. */
 class Tuner(private val shell: ShellBackend, private val model: QuestModel) {
 
@@ -67,6 +70,19 @@ class Tuner(private val shell: ShellBackend, private val model: QuestModel) {
             shell.exec(ShellCommand.resetProperty(property)).isSuccess
         }
         ResetResult(failed)
+    } catch (e: ShellUnavailableException) {
+        null
+    }
+
+    /**
+     * Diagnostic (FR-024) : une seule lecture `getprop`, filtrée côté appli. Sert aussi à
+     * l'indicateur « actif sur le casque » de l'écran profil (FR-033).
+     *
+     * @return `null` si l'appli n'est pas connectée ou si la lecture échoue.
+     */
+    suspend fun readDiagnostic(): Diagnostic? = try {
+        val result = shell.exec(ShellCommand.readProperties())
+        if (result.isSuccess) Diagnostic(ShellOutput.parseGetprop(result.output)) else null
     } catch (e: ShellUnavailableException) {
         null
     }

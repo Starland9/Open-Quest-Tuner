@@ -171,11 +171,22 @@ diagnostic qu'aucun réglage géré n'est plus actif.
 
 ---
 
-### User Story 5 - Diagnostiquer les réglages actifs (Priority: P3)
+### User Story 5 - Diagnostiquer les réglages actifs et l'état thermique (Priority: P3)
+
+*Amendée le 2026-09-23 après les essais sur Quest 3 (vros 207) : ajout de l'état thermique du
+casque, lisible sans connexion, et d'un indicateur « actif sur le casque » dans l'écran profil.
+Après « Tout réinitialiser », l'écran profil gardait ses choix, ce qui laissait croire que les
+réglages étaient encore actifs. Et pendant les essais, le casque a chauffé sans que l'appli le
+signale.*
 
 L'utilisateur (ou un contributeur qui teste un nouveau casque) veut savoir quels réglages sont
 réellement actifs. L'appli affiche la liste des propriétés de réglage actuellement définies sur
-le casque, avec leurs valeurs.
+le casque, avec leurs valeurs. Dans l'écran profil d'un jeu, elle indique si les réglages affichés
+sont actifs sur le casque ou pas encore appliqués.
+
+L'utilisateur veut aussi savoir si son casque chauffe, surtout avec des niveaux CPU/GPU élevés.
+L'appli affiche l'état thermique donné par le système, même sans connexion, et prévient quand le
+casque devient chaud.
 
 **Why this priority**: utile pour vérifier un profil, et nécessaire pour remplir le tableau de
 compatibilité (constitution, principe III). Ce n'est pas un parcours quotidien.
@@ -191,6 +202,14 @@ lancer », et comparer les valeurs affichées avec le profil.
    indique qu'aucun réglage n'est actif.
 3. **Given** le diagnostic affiché, **When** l'utilisateur touche « Actualiser », **Then** les
    valeurs sont relues sur le casque.
+4. **Given** l'appli ouverte, connectée ou non, **When** l'utilisateur ouvre le diagnostic,
+   **Then** il voit l'état thermique du casque, mis à jour en direct.
+5. **Given** un casque dont l'état thermique atteint « modéré » ou plus, **When** l'utilisateur
+   est sur la liste des jeux ou sur un profil, **Then** un avertissement l'invite à baisser les
+   niveaux CPU/GPU ou la résolution, ou à faire une pause.
+6. **Given** l'appli connectée, **When** l'utilisateur ouvre le profil d'un jeu, **Then** l'appli
+   indique si les réglages affichés sont actifs sur le casque ou non appliqués. Après « Tout
+   réinitialiser », un profil non vide est indiqué « non appliqué ».
 
 ---
 
@@ -226,6 +245,12 @@ lancer », et comparer les valeurs affichées avec le profil.
 - **Réglages actifs après la fermeture du jeu** : ils s'appliquent aussi aux jeux lancés ensuite
   depuis le menu du Quest, jusqu'à une réinitialisation ou un redémarrage. L'utilisateur en est
   informé (FR-022).
+- **Casque qui chauffe** (session longue, niveaux élevés, charge pendant l'utilisation) : le
+  système réduit lui-même les performances, puis coupe l'appli en cours au-delà d'un seuil.
+  L'appli affiche l'état thermique et prévient dès « modéré » (FR-031, FR-032). Elle ne baisse
+  jamais les réglages d'elle-même.
+- **État thermique indisponible** (API absente ou en erreur) : l'appli affiche « inconnu » et
+  n'avertit pas.
 
 ## Requirements *(mandatory)*
 
@@ -337,6 +362,19 @@ lancer », et comparer les valeurs affichées avec le profil.
 - **FR-030**: L'interface DOIT être utilisable dans un panneau du casque aux contrôleurs comme aux
   mains : cibles d'interaction d'au moins 48 dp, et aucun besoin de clavier physique.
 
+**Diagnostic complémentaire** (amendement de l'US5 du 2026-09-23)
+
+- **FR-031**: L'appli DOIT afficher l'état thermique du casque tel que le système le rapporte
+  (normal, léger, modéré, sévère, critique, urgence, arrêt imminent), sans exiger de connexion,
+  et le mettre à jour en direct.
+- **FR-032**: À partir de l'état « modéré », l'appli DOIT afficher un avertissement sur la liste
+  des jeux et sur les profils, qui conseille de baisser les niveaux CPU/GPU ou la résolution, ou
+  de faire une pause.
+- **FR-033**: Quand l'appli est connectée, l'écran profil DOIT indiquer si les réglages affichés
+  correspondent aux valeurs actives sur le casque (« actif sur le casque ») ou non (« non
+  appliqué »). La comparaison porte sur les 7 propriétés gérées : un réglage « Par défaut du jeu »
+  correspond à une propriété vide.
+
 ### Key Entities *(include if feature involves data)*
 
 - **Jeu installé** : une application VR installée par l'utilisateur. Attributs : identifiant
@@ -376,6 +414,10 @@ lancer », et comparer les valeurs affichées avec le profil.
 - **SC-009**: Une inspection du trafic réseau pendant une session complète ne montre aucune
   communication hors de la connexion locale au casque.
 - **SC-010**: 100 % des textes de l'interface sont disponibles en français et en anglais.
+- **SC-011**: L'état thermique affiché correspond à celui du système (`dumpsys thermalservice`).
+  Quand il atteint « modéré », l'avertissement apparaît en moins de 5 secondes.
+- **SC-012**: Dans 100 % des essais, l'indicateur de l'écran profil passe à « actif sur le
+  casque » après « Appliquer et lancer », puis à « non appliqué » après « Tout réinitialiser ».
 
 ## Assumptions
 

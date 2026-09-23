@@ -106,4 +106,21 @@
     <string name="profile_deleted">Profile deleted.</string>
     <string name="profile_delete_failed">The profile could not be deleted.</string>
     <string name="profile_saved_hint">Saved profile for this game: it is applied to the headset at each launch from OpenQuestTuner.</string>
+    <!-- US5 : diagnostic et état thermique -->
+    <string name="diagnostic_title">Diagnostic</string>
+    <string name="thermal_state">Thermal state: %1$s</string>
+    <string name="thermal_none">normal</string>
+    <string name="thermal_light">light</string>
+    <string name="thermal_moderate">moderate</string>
+    <string name="thermal_severe">severe</string>
+    <string name="thermal_critical">critical</string>
+    <string name="thermal_emergency">emergency</string>
+    <string name="thermal_shutdown">imminent shutdown</string>
+    <string name="thermal_unknown">unknown</string>
+    <string name="thermal_warning">The headset is hot (state: %1$s). The system may lower performance: lower the CPU/GPU levels or the resolution, or take a break.</string>
+    <string name="diagnostic_connect">Connect the app to read the settings active on the headset.</string>
+    <string name="diagnostic_unavailable">Active settings cannot be read right now.</string>
+    <string name="diagnostic_no_active">No active setting.</string>
+    <string name="profile_active">Active on the headset</string>
+    <string name="profile_not_applied">Not applied to the headset</string>
 </resources>

@@ -136,7 +136,8 @@ app/
     │   │   │   ├── QuestProperty.kt     # Liste blanche des propriétés + encodage des valeurs
     │   │   │   ├── QuestModel.kt        # Modèles de casque, plages, résolution par défaut, statut vérifié
     │   │   │   ├── EyeTexture.kt        # Taille par œil + paliers de résolution
-    │   │   │   ├── GameProfile.kt       # Profil, validation, avertissements
+    │   │   │   ├── GameProfile.kt       # Profil, validation, avertissements, comparaison avec l'état actif
+    │   │   │   ├── ThermalLevel.kt      # État thermique du système et seuil d'avertissement (amendement US5)
     │   │   │   ├── ShellCommands.kt     # Seule fabrique de commandes (validation + échappement)
     │   │   │   ├── ShellOutput.kt       # Marqueur de code de sortie, parsing getprop
     │   │   │   ├── ShellBackend.kt      # Interface + ConnectionState + ShellResult
@@ -152,13 +153,15 @@ app/
     │   │   │   └── ConnectionPrefs.kt   # Dernière méthode réussie
     │   │   ├── games/
     │   │   │   └── GameRepository.kt    # PackageManager : jeux VR installés
+    │   │   ├── thermal/
+    │   │   │   └── ThermalMonitor.kt    # PowerManager : état thermique en direct, sans ADB (research.md R10)
     │   │   └── ui/
     │   │       ├── MainViewModel.kt
     │   │       ├── OqtApp.kt            # Scaffold + navigation par état
     │   │       ├── GamesScreen.kt
     │   │       ├── ProfileScreen.kt
     │   │       ├── ConnectionScreen.kt  # Connexion, outils (Tout réinitialiser, Diagnostic)
-    │   │       ├── components/          # ConnectionBadge, ChoiceRow, ExperimentalBadge, GameIcon
+    │   │       ├── components/          # ConnectionBadge, ChoiceRow, ExperimentalBadge, GameIcon, ThermalBanner
     │   │       └── theme/Theme.kt
     │   └── res/
     │       ├── values/strings.xml       # Anglais (défaut)

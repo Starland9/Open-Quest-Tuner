@@ -41,8 +41,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.openquesttuner.R
+import io.github.openquesttuner.core.ThermalLevel
 import io.github.openquesttuner.games.InstalledGame
 import io.github.openquesttuner.ui.components.GameIcon
+import io.github.openquesttuner.ui.components.ThermalBanner
 
 /**
  * Liste des jeux VR installés (FR-008 à FR-010) : recherche, puce « Profil », lancement direct.
@@ -63,6 +65,7 @@ fun GamesScreen(
     onLaunch: (InstalledGame) -> Unit,
     onRefresh: () -> Unit,
     onOpenConnection: () -> Unit,
+    thermalLevel: ThermalLevel,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Scaffold(
@@ -81,6 +84,7 @@ fun GamesScreen(
         Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 760.dp).fillMaxSize()) {
                 if (loading && totalGames > 0) LinearProgressIndicator(Modifier.fillMaxWidth())
+                ThermalBanner(thermalLevel, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                 if (!connected) DisconnectedBanner(onOpenConnection)
                 if (totalGames > 0) SearchField(query, onQueryChange)
                 when {

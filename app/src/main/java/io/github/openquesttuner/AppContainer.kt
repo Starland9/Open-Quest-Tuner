@@ -9,6 +9,7 @@ import io.github.openquesttuner.core.ProfileStore
 import io.github.openquesttuner.core.QuestModel
 import io.github.openquesttuner.core.Tuner
 import io.github.openquesttuner.games.GameRepository
+import io.github.openquesttuner.thermal.ThermalMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,4 +36,6 @@ class AppContainer(context: Context) {
     val games = GameRepository(appContext)
 
     val tuner = Tuner(adb, questModel)
+
+    val thermal = ThermalMonitor(appContext, appScope)
 }

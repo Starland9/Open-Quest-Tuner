@@ -49,6 +49,8 @@ import io.github.openquesttuner.R
 import io.github.openquesttuner.core.ConnectionInput
 import io.github.openquesttuner.core.ConnectionMethod
 import io.github.openquesttuner.core.ConnectionState
+import io.github.openquesttuner.core.Diagnostic
+import io.github.openquesttuner.core.ThermalLevel
 import io.github.openquesttuner.ui.components.isBusy
 import io.github.openquesttuner.ui.components.labelRes
 import io.github.openquesttuner.ui.components.messageRes
@@ -68,6 +70,9 @@ fun ConnectionScreen(
     onSwitchToWireless: () -> Unit,
     resetting: Boolean,
     onResetAll: () -> Unit,
+    thermalLevel: ThermalLevel,
+    diagnostic: Diagnostic?,
+    onRefreshDiagnostic: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -91,6 +96,12 @@ fun ConnectionScreen(
             ) {
                 StatusCard(state, onDisconnect, switchingToWireless, onSwitchToWireless)
                 ToolsCard(connected = state is ConnectionState.Connected, resetting = resetting, onResetAll = onResetAll)
+                DiagnosticCard(
+                    connected = state is ConnectionState.Connected,
+                    thermalLevel = thermalLevel,
+                    diagnostic = diagnostic,
+                    onRefresh = onRefreshDiagnostic,
+                )
                 // Première connexion via PC (une seule fois), puis « Passer en sans fil » ;
                 // l'appairage par code n'est qu'un secours (spec US1, amendée le 2026-09-23).
                 PcCard(busy = state.isBusy || switchingToWireless, onConnectPc = onConnectPc)
@@ -172,6 +183,43 @@ private fun ToolsCard(connected: Boolean, resetting: Boolean, onResetAll: () -> 
         if (!connected) {
             Text(
                 stringResource(R.string.reset_all_disconnected),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Diagnostic (US5) : état thermique toujours visible, propriétés actives une fois connecté. */
+@Composable
+private fun DiagnosticCard(
+    connected: Boolean,
+    thermalLevel: ThermalLevel,
+    diagnostic: Diagnostic?,
+    onRefresh: () -> Unit,
+) {
+    SectionCard(title = stringResource(R.string.diagnostic_title)) {
+        Text(
+            stringResource(R.string.thermal_state, stringResource(thermalLevel.labelRes())),
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (thermalLevel.warning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+        )
+        if (connected) {
+            when {
+                diagnostic == null -> Text(stringResource(R.string.diagnostic_unavailable), style = MaterialTheme.typography.bodyMedium)
+                diagnostic.active.isEmpty() -> Text(stringResource(R.string.diagnostic_no_active), style = MaterialTheme.typography.bodyMedium)
+                else -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    diagnostic.active.forEach { (key, value) ->
+                        Text("$key = $value", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+            OutlinedButton(onClick = onRefresh, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.refresh))
+            }
+        } else {
+            Text(
+                stringResource(R.string.diagnostic_connect),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

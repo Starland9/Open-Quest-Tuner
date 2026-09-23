@@ -105,4 +105,21 @@
     <string name="profile_deleted">Profil supprimé.</string>
     <string name="profile_delete_failed">Impossible de supprimer le profil.</string>
     <string name="profile_saved_hint">Profil enregistré pour ce jeu : il est appliqué au casque à chaque lancement depuis OpenQuestTuner.</string>
+    <!-- US5 : diagnostic et état thermique -->
+    <string name="diagnostic_title">Diagnostic</string>
+    <string name="thermal_state">État thermique : %1$s</string>
+    <string name="thermal_none">normal</string>
+    <string name="thermal_light">léger</string>
+    <string name="thermal_moderate">modéré</string>
+    <string name="thermal_severe">sévère</string>
+    <string name="thermal_critical">critique</string>
+    <string name="thermal_emergency">urgence</string>
+    <string name="thermal_shutdown">arrêt imminent</string>
+    <string name="thermal_unknown">inconnu</string>
+    <string name="thermal_warning">Le casque chauffe (état : %1$s). Le système peut réduire les performances : baisse les niveaux CPU/GPU ou la résolution, ou fais une pause.</string>
+    <string name="diagnostic_connect">Connecte l\'appli pour lire les réglages actifs sur le casque.</string>
+    <string name="diagnostic_unavailable">Lecture des réglages actifs impossible pour l\'instant.</string>
+    <string name="diagnostic_no_active">Aucun réglage actif.</string>
+    <string name="profile_active">Actif sur le casque</string>
+    <string name="profile_not_applied">Non appliqué au casque</string>
 </resources>

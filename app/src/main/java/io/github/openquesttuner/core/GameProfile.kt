@@ -31,6 +31,13 @@ data class GameProfile(
         }
     }
 
+    /**
+     * Vrai si les 7 propriétés actives sur le casque ([active], issu du diagnostic) correspondent
+     * à ce profil ; un réglage « Par défaut du jeu » exige une propriété vide (FR-033).
+     */
+    fun isActiveOn(active: Map<String, String>): Boolean =
+        toPropertyValues().all { (property, value) -> active[property.key] == value?.toString() }
+
     /** Valeurs hors des plages du modèle ; si la liste n'est pas vide, aucune commande n'est envoyée. */
     fun validateFor(model: QuestModel): List<ProfileViolation> = buildList {
         refreshRate?.let { if (it !in model.refreshRates) add(ProfileViolation(QuestProperty.REFRESH_RATE, it)) }

@@ -283,6 +283,40 @@ Le design du MVP n'empêche rien de tout ça : la clé est persistante et `Shell
 inchangé. Ce sera une fonctionnalité à part (`/speckit-specify`), avec un amendement du contrat
 des commandes (`pm grant`).
 
+## R10 : État thermique du casque (amendement de l'US5, 2026-09-23)
+
+**Décision** : lire l'état thermique avec l'API Android `PowerManager` : `getCurrentThermalStatus()`
+pour la valeur initiale, puis `addThermalStatusListener(Executor, listener)` pour les changements.
+Les deux existent depuis l'API 29, qui est le minSdk de l'appli. Aucune permission n'est requise,
+et aucune connexion ADB. Les 7 niveaux du système (`THERMAL_STATUS_NONE` = 0 à
+`THERMAL_STATUS_SHUTDOWN` = 6) sont convertis dans le cœur (`ThermalLevel`). L'avertissement
+commence à `MODERATE` (2). [C] doc Android, SDK 35 vérifié
+
+**Constaté sur Quest 3 (vros 207, fin d'une session d'essais d'environ 1 h 30, casque branché) avec
+`dumpsys thermalservice`** :
+- `Thermal Status: 2` (modéré), avec une température de surface `surf-virt-usr` de 49 °C. Seuils
+  de cette sonde : bridage léger à 48 °C, modéré à 50, sévère à 52, arrêt à 60 ;
+- CPU et GPU vers 72 °C, pour des seuils à 89, 92 et 95 °C (arrêt à 115) : c'est la surface, donc
+  le confort de l'utilisateur, qui déclenche le statut, pas la puce ;
+- ventilateur exposé comme appareil de refroidissement `pwm-tach-fan0`, à l'état 4 : il tourne,
+  mais on l'entend à peine ;
+- batterie à 55 °C, secteur branché mais `status: 4` (pas en charge) : la charge se met en pause
+  quand la batterie est trop chaude.
+
+Le statut vient donc du même service système que celui lu par l'API : l'appli affichera la même
+valeur que `dumpsys`. Reste à vérifier sur casque que l'écouteur est bien appelé à chaque changement
+(quickstart 5.3).
+
+**Alternatives** :
+- lire `/sys/class/thermal/*` : illisible sans privilèges, même depuis le shell ADB ;
+- `dumpsys thermalservice` via ADB : exige une connexion. Rejeté, l'état doit rester visible hors
+  connexion ;
+- `getThermalHeadroom()` (API 30) : une prévision utile, mais hors périmètre. L'état du système
+  suffit pour l'avertissement.
+
+**Indicateur « actif sur le casque »** (FR-033) : il réutilise la lecture du diagnostic (C5
+`getprop`). Aucune nouvelle commande n'est ajoutée, la liste fermée ne change pas (principe I).
+
 ## Toolchain (vérifiée)
 
 - Le couple AGP 8.13.2 / Kotlin 2.2.20 / Gradle 9.4.1 / compose-bom 2024.12.01 compile déjà

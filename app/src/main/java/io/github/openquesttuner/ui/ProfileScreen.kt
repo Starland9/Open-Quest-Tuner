@@ -1,6 +1,7 @@
 package io.github.openquesttuner.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.openquesttuner.R
 import io.github.openquesttuner.core.ConnectionState
+import io.github.openquesttuner.core.Diagnostic
 import io.github.openquesttuner.core.EyeTexture
 import io.github.openquesttuner.core.FoveationLevel
 import io.github.openquesttuner.core.GameProfile
@@ -51,8 +54,10 @@ import io.github.openquesttuner.core.ProfileWarning
 import io.github.openquesttuner.core.QuestModel
 import io.github.openquesttuner.core.QuestProperty
 import io.github.openquesttuner.core.RESOLUTION_STEPS
+import io.github.openquesttuner.core.ThermalLevel
 import io.github.openquesttuner.games.InstalledGame
 import io.github.openquesttuner.ui.components.ChoiceRow
+import io.github.openquesttuner.ui.components.ThermalBanner
 
 /**
  * Profil d'un jeu (US2) : six réglages, chacun sur « Par défaut du jeu » tant qu'on n'y touche pas
@@ -71,6 +76,8 @@ fun ProfileScreen(
     onApplyAndLaunch: (GameProfile) -> Unit,
     onOpenConnection: () -> Unit,
     onDelete: () -> Unit,
+    thermalLevel: ThermalLevel,
+    diagnostic: Diagnostic?,
 ) {
     // Suit aussi le profil enregistré, qui peut arriver après l'ouverture de l'écran au démarrage,
     // et revient à « Par défaut du jeu » partout quand le profil est supprimé.
@@ -139,7 +146,12 @@ fun ProfileScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
+                ThermalBanner(thermalLevel)
                 ModelInfo(model)
+                // FR-033 : seulement si l'état du casque est connu (connecté et diagnostic lu).
+                if (connectionState is ConnectionState.Connected && diagnostic != null) {
+                    ActiveIndicator(active = draft.isActiveOn(diagnostic.active))
+                }
                 Settings(draft, model, onChange = { draft = it })
                 Warnings(draft.warnings(model))
                 InfoCard(stringResource(R.string.settings_persist_info))
@@ -160,6 +172,20 @@ private fun ModelInfo(model: QuestModel) {
             stringResource(R.string.profile_model_detected, model.displayName),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Les réglages affichés sont-ils ceux qui sont actifs sur le casque ? (FR-033) */
+@Composable
+private fun ActiveIndicator(active: Boolean) {
+    val color = if (active) Color(0xFF6DD58C) else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.size(10.dp).background(color, CircleShape))
+        Text(
+            stringResource(if (active) R.string.profile_active else R.string.profile_not_applied),
+            style = MaterialTheme.typography.titleSmall,
+            color = color,
         )
     }
 }
