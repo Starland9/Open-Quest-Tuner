@@ -901,6 +901,20 @@ connexion, et indicateur « actif sur le casque » dans l'écran profil.*
   - amender [contracts/shell-commands.md](contracts/shell-commands.md) si `--user current` ou
     `setprop <clé> ''` se comportent autrement que prévu.
 
+- [X] T087 Variante release installable, ajoutée le 2026-09-23 à la demande de l'utilisateur :
+  - `buildTypes.release` dans `app/build.gradle.kts` : R8 (`isMinifyEnabled`, `isShrinkResources`)
+    et signature avec la clé de debug locale, en attendant une clé de publication. L'APK s'installe
+    donc par-dessus la version debug sans perdre la clé ADB autorisée ni les profils. Un APK non
+    signé n'est pas installable sous Android ;
+  - `app/proguard-rules.pro` : garder `io.github.muntashirakon.**` (JNI et chargement par nom dans
+    libadb et spake2), `-dontwarn` sur deux adaptateurs Conscrypt pour Android 4.4 et antérieur ;
+  - APK de 8,8 Mo au lieu de 37 Mo (code : 2,5 Mo au lieu de 30) ;
+  - ✅ sur Quest 3 : installation en mise à jour, reconnexion TLS en 77 ms, 35 jeux listés, aucun
+    plantage ;
+  - non couvert par ce test : la génération de clé (Bouncy Castle) et l'appairage (spake2), qui ne
+    servent qu'à la première installation. À vérifier sur une installation neuve avant toute
+    publication.
+
 ---
 
 ## Dependencies & Execution Order

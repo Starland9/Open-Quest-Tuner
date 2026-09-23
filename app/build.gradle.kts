@@ -22,6 +22,19 @@ android {
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
 
+    buildTypes {
+        release {
+            // Optimisée par R8 : APK plus léger et interface Compose plus fluide dans le casque.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Signée avec la clé de debug locale, en attendant une clé de publication : elle s'installe
+            // par-dessus la version debug sans perdre la clé ADB autorisée ni les profils. Ne pas
+            // distribuer cet APK.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

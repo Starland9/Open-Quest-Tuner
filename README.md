@@ -65,7 +65,7 @@ headsets use values from Meta's documentation, and their settings are marked *Ex
 There are no published releases yet: build the APK (see below), then sideload it:
 
 ```bash
-adb install app-debug.apk
+adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
 The app then appears in the headset's library, under *Unknown sources*.
@@ -100,8 +100,14 @@ You need JDK 17 or newer (tested with 21) and the Android SDK with platform 35.
 
 ```bash
 ./gradlew test assembleDebug     # JVM tests, then app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleRelease        # optimized (R8) app/build/outputs/apk/release/app-release.apk
 ./gradlew lintDebug
 ```
+
+The release APK is optimized with R8: about 9 MB instead of 37 MB, with a smoother UI. It is
+signed with your local debug key until a publishing key exists. That way, it installs over a
+debug build without losing the app's authorized ADB key or your profiles. Android refuses
+unsigned APKs. Do not distribute an APK signed with a debug key.
 
 The `core/` package is plain Kotlin with no Android imports: every rule (commands, profiles,
 connection policy, thermal levels…) is covered by JVM tests that run without a headset.
