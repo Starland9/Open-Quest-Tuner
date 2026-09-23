@@ -166,7 +166,8 @@ app/
     │   └── res/
     │       ├── values/strings.xml       # Anglais (défaut)
     │       ├── values-fr/strings.xml    # Français
-    │       └── mipmap-anydpi-v26/, drawable/  # Icône adaptative
+    │       ├── xml/data_extraction_rules.xml  # Aucune sauvegarde ni transfert (FR-027)
+    │       └── mipmap-anydpi/, drawable/      # Icône adaptative (+ monochrome)
     └── test/java/io/github/openquesttuner/core/
         ├── ShellCommandsTest.kt
         ├── ShellOutputTest.kt

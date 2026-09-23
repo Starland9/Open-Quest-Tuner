@@ -1,23 +1,3 @@
-<!--
-Sync Impact Report
-- Version : modèle non ratifié → 1.0.0 (première ratification)
-- Principes (placeholders remplacés) :
-  - [PRINCIPLE_1_NAME] → I. Sécurité du casque d'abord (NON NÉGOCIABLE)
-  - [PRINCIPLE_2_NAME] → II. Libre, clean-room et respectueux de la vie privée
-  - [PRINCIPLE_3_NAME] → III. Vérifié sur casque réel
-  - [PRINCIPLE_4_NAME] → IV. Cœur testable sans casque
-  - [PRINCIPLE_5_NAME] → V. Simplicité et UX pensée pour la VR
-- Sections ajoutées : Contraintes techniques ([SECTION_2_NAME]),
-  Workflow de développement ([SECTION_3_NAME])
-- Sections supprimées : aucune
-- Templates vérifiés (non modifiés, ils lisent la constitution à l'exécution) :
-  - ✅ .specify/templates/plan-template.md (« Constitution Check », « Complexity Tracking »)
-  - ✅ .specify/templates/spec-template.md
-  - ✅ .specify/templates/tasks-template.md
-- TODO différés : le tableau de compatibilité (principe III) n'existe pas encore ; il sera
-  créé avec la première fonctionnalité (emplacement proposé : docs/compatibility.md).
--->
-
 # Constitution d'OpenQuestTuner
 
 OpenQuestTuner est une application Android 2D open source pour casques Meta Quest, alternative

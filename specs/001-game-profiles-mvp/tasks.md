@@ -848,14 +848,16 @@ connexion, et indicateur « actif sur le casque » dans l'écran profil.*
 
 **Purpose**: garde-fous de la constitution, documentation, validation complète.
 
-- [ ] T081 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/CoreArchitectureTest.kt` : il
+- [X] T081 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/CoreArchitectureTest.kt` : il
   parcourt `app/src/main/java/io/github/openquesttuner/core/**/*.kt` et échoue si un fichier
   contient `import android.` ou `import androidx.` (principe IV).
-- [ ] T082 [P] Écrire `app/src/test/java/io/github/openquesttuner/StringsParityTest.kt` : il parse
+  - Fait le 2026-09-23. Contrôle par mutation : un `import android.util.Log` ajouté dans `core/` fait bien échouer le test.
+- [X] T082 [P] Écrire `app/src/test/java/io/github/openquesttuner/StringsParityTest.kt` : il parse
   `app/src/main/res/values/strings.xml` et `app/src/main/res/values-fr/strings.xml`, puis échoue
   si les ensembles de `name` diffèrent, en ignorant les chaînes `translatable="false"` comme
   `app_name` (FR-029, SC-010).
-- [ ] T083 [P] Créer `README.md` en anglais, pour le public GitHub, avec un paragraphe
+  - Fait le 2026-09-23. Vérifie aussi que les paramètres de format (`%1$s`, `%1$.1f`…) sont identiques dans les deux langues. Contrôle par mutation : une chaîne retirée du français fait bien échouer le test.
+- [X] T083 [P] Créer `README.md` en anglais, pour le public GitHub, avec un paragraphe
   d'introduction en français. Contenu :
   - ce que fait l'appli et sa licence GPL-3.0 ;
   - avertissement sur les propriétés non documentées et « expérimentales » ;
@@ -864,11 +866,31 @@ connexion, et indicateur « actif sur le casque » dans l'écran profil.*
   - build (`./gradlew test assembleDebug`) ;
   - liens vers `docs/compatibility.md` et `specs/001-game-profiles-mvp/` ;
   - mention clean-room : aucun lien avec Quest Games Optimizer.
-- [ ] T084 Retirer le commentaire « Sync Impact Report » en tête de `.specify/memory/constitution.md`
+  - Fait le 2026-09-23. Il explique aussi que les réglages s'appliquent à tout le casque, liste les licences tierces (libadb, spake2, Conscrypt, Bouncy Castle) et précise la vie privée (aucun trafic hors 127.0.0.1 et mDNS local).
+- [X] T084 Retirer le commentaire « Sync Impact Report » en tête de `.specify/memory/constitution.md`
   : c'est une note temporaire à supprimer avant le premier commit.
-- [ ] T085 Lancer `./gradlew test assembleDebug lintDebug` et corriger toutes les erreurs de lint,
+  - Fait le 2026-09-23 : seul le commentaire a été retiré, le contenu de la constitution est inchangé.
+- [X] T085 Lancer `./gradlew test assembleDebug lintDebug` et corriger toutes les erreurs de lint,
   notamment `MissingTranslation`. Les avertissements restants sont notés dans la description du
   commit.
+  - Fait le 2026-09-23 : 0 erreur, 127 tests au vert. Corrigés :
+    - `DataExtractionRules` : ajout de `res/xml/data_extraction_rules.xml`, qui exclut tout, pour la
+      sauvegarde cloud comme pour le transfert entre appareils. Sur Android 12+, `allowBackup="false"`
+      ne bloque plus le transfert entre appareils, alors que la clé ADB est dans `filesDir` (FR-027) ;
+    - `ObsoleteSdkInt` : `mipmap-anydpi-v26/` renommé en `mipmap-anydpi/` ;
+    - `MonochromeLauncherIcon` : icône monochrome ajoutée.
+  - Avertissements restants, à reporter dans la description du commit (16) :
+    - 10 × `GradleDependency` / `NewerVersionAvailable` : montées de version à faire dans une tâche
+      dédiée, avec nouvelle validation sur casque ;
+    - `OldTargetApi` : targetSdk 34, comme Horizon OS (Android 14) ;
+    - `DataExtractionRules` résiduel : réclame `fullBackupContent` pour API ≤ 30, sans objet puisque
+      `allowBackup="false"` y bloque déjà tout ;
+    - `PluralsCandidate` (« pixels ») : faux positif, la valeur n'est jamais 1 ;
+    - 3 × `TrustAllX509TrustManager` dans libadb et Bouncy Castle : ADB authentifie par sa propre
+      clé (appairage ou `adb_keys`), pas par une autorité de certification.
+  - Piège de build rencontré : après `git mv` d'un dossier de ressources, le démon Gradle (surveillance
+    du système de fichiers) a ignoré les nouveaux fichiers, même après `clean`. Contournement : un
+    build avec `--no-watch-fs`.
 - [ ] T086 Validation complète sur Quest 3 (**nécessite le casque**) :
   - dérouler tout [quickstart.md](quickstart.md), y compris 5.2 (langues) et la section 5
     (réseau, SC-009) ;

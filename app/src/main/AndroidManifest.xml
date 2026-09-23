@@ -16,10 +16,12 @@
         android:name="android.hardware.vr.headtracking"
         android:required="false" />
 
-    <!-- allowBackup=false : la clé ADB privée ne doit jamais quitter le casque (principe I). -->
+    <!-- allowBackup=false et dataExtractionRules : la clé ADB privée ne doit jamais quitter le casque
+         (principe I, FR-027), ni par sauvegarde ni par transfert vers un autre appareil (Android 12+). -->
     <application
         android:name=".OqtApplication"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
