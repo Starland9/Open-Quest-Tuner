@@ -39,8 +39,15 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
         Box(Modifier.fillMaxSize()) {
             val connectionState by vm.connectionState.collectAsState()
             val switchingToWireless by vm.switchingToWireless.collectAsState()
-            when (backStack.last()) {
+            val games by vm.games.collectAsState()
+            val loadingGames by vm.loadingGames.collectAsState()
+            val profiles by vm.profiles.collectAsState()
+            val tuning by vm.tuning.collectAsState()
+            when (val screen = backStack.last()) {
                 Screen.Games -> GamesScreen(
+                    games = games,
+                    loading = loadingGames,
+                    onOpenGame = { vm.navigate(Screen.Profile(it.packageName)) },
                     actions = {
                         ConnectionBadge(
                             state = connectionState,
@@ -60,8 +67,23 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                     switchingToWireless = switchingToWireless,
                     onSwitchToWireless = vm::switchToWireless,
                 )
-                // Écran branché par l'US2.
-                is Screen.Profile -> Unit
+                is Screen.Profile -> {
+                    // Le ViewModel retire l'écran si le jeu disparaît de la liste (désinstallation).
+                    val game = games.firstOrNull { it.packageName == screen.packageName }
+                    if (game != null) {
+                        ProfileScreen(
+                            game = game,
+                            saved = profiles[game.packageName],
+                            model = vm.questModel,
+                            connectionState = connectionState,
+                            tuning = tuning,
+                            onBack = { vm.back() },
+                            onSave = { vm.saveProfile(game.packageName, it) },
+                            onApplyAndLaunch = { vm.applyAndLaunch(game, it) },
+                            onOpenConnection = { vm.navigate(Screen.Connection) },
+                        )
+                    }
+                }
             }
             SnackbarHost(
                 hostState = snackbarHostState,

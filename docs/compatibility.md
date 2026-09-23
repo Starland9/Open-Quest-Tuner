@@ -17,11 +17,11 @@ Légende :
 
 | Propriété | Quest 3 | Quest 3S | Quest 2 | Quest Pro | Source de la plage |
 |---|---|---|---|---|---|
-| `debug.oculus.refreshRate` | — | — | — | — | doc Meta, fréquences (research R2) |
-| `debug.oculus.textureWidth` / `textureHeight` | — | — | — | — | doc Meta, render scale (R2) |
-| `debug.oculus.cpuLevel` | — | — | — | — | doc Meta, niveaux CPU/GPU (R2) |
-| `debug.oculus.gpuLevel` | — | — | — | — | doc Meta, niveaux CPU/GPU (R2) |
-| `debug.oculus.foveation.level` | — | — | — | — | doc Meta, FFR (R1) |
+| `debug.oculus.refreshRate` | ✅ | — | — | — | doc Meta, fréquences (research R2) |
+| `debug.oculus.textureWidth` / `textureHeight` | ✅ | — | — | — | doc Meta, render scale (R2) |
+| `debug.oculus.cpuLevel` | ✅ | — | — | — | doc Meta, niveaux CPU/GPU (R2) |
+| `debug.oculus.gpuLevel` | ✅ | — | — | — | doc Meta, niveaux CPU/GPU (R2) |
+| `debug.oculus.foveation.level` | ✅ | — | — | — | doc Meta, FFR (R1) |
 | `debug.oculus.foveation.dynamic` | — | — | — | — | doc Meta, FFR (R1) |
 | Réinitialisation `setprop <clé> ''` | ✅ | — | — | — | doc Meta (R7) |
 
@@ -50,6 +50,12 @@ Une ligne par essai. Pour les versions récentes, noter la version d'Horizon OS 
 | 2026-09-23 | Quest 3 | vros 207 | — | Premier probe après connexion | Bloqué jusqu'au délai maximal à chaque lancement à froid de l'appli, puis réussi à la nouvelle tentative (proche de libadb #34). Délai du probe ramené de 5 s à 2 s : reconnexion en 2,1 s. | logs `OqtAdb` | ✅ contourné |
 | 2026-09-23 | Quest 3 | vros 207 | — | Fenêtre « autoriser sur ce réseau » après une mise en veille | Le réseau était « toujours autorisé », mais la fenêtre `WifiDebuggingAlertActivity` est réapparue à la réactivation (hypothèse : changement de borne ou BSSID, la confiance étant liée au BSSID sous Android). Tant qu'elle est ouverte, c'est une fenêtre système exclusive : **aucune appli ne se lance** (`am start` sans effet). | `dumpsys activity`, `pidof` | ℹ️ l'appli doit expliquer d'accepter cette fenêtre (fait dans le texte d'aide de « Passer en sans fil ») |
 | 2026-09-23 | Quest 3 | vros 207 | — | Nouveau passage des 3 reconnexions à froid | Sans fil actif : 0,27 s. Sans fil coupé : repli sur 5555 en 53 ms après 10 s de mDNS. Via PC : 42 ms. Aucun blocage du probe cette fois. | logs `OqtAdb` | ✅ |
+| 2026-09-23 | Quest 3 | vros 207 | Beat Saber 1.44.3 | « Appliquer et lancer » : 120 Hz, ×1,5 (2520×2640), CPU 4, GPU 5, fovéal fixe Moyen (2), fovéal dynamique désactivé (0) | `getprop` montre les 7 valeurs attendues pendant la partie. 221 ms entre `Force stopping` et `START u0` pour la séquence complète (arrêt, 7 `setprop`, `am start`). | `getprop`, logcat ActivityManager | ✅ scénarios 2.3 et 2.4, SC-003, SC-004 |
+| 2026-09-23 | Quest 3 | vros 207 | Beat Saber 1.44.3 | `debug.oculus.refreshRate = 120` | `FPS=120/120` : le second nombre est la fréquence de l'écran. | logcat `VrApi` (définitions : doc Meta « Logcat Stats Definitions ») | ✅ |
+| 2026-09-23 | Quest 3 | vros 207 | Beat Saber 1.44.3 | `debug.oculus.textureWidth = 2520`, `textureHeight = 2640` | `SF=1.50` : rapport entre le framebuffer soumis et la taille recommandée. Cela confirme sur casque la base de 1680×1760 (2520 ÷ 1,5). `DpuScale=1.00`. | logcat `VrApi` | ✅ |
+| 2026-09-23 | Quest 3 | vros 207 | Beat Saber 1.44.3 | `debug.oculus.cpuLevel = 4`, `gpuLevel = 5` | `CPU4/GPU=4/5`, horloges 1920/599 MHz. Les deux niveaux sont accordés ensemble, dans un jeu immersif (passthrough coupé). Température `Temp=60.0C` en début de partie. | logcat `VrApi` | ✅ |
+| 2026-09-23 | Quest 3 | vros 207 | Beat Saber 1.44.3 | `debug.oculus.foveation.level = 2` | `Fov=2` : niveau de rendu fovéal fixe. | logcat `VrApi` | ✅ |
+| 2026-09-23 | Quest 3 | vros 207 | Beat Saber 1.44.3 | `debug.oculus.foveation.dynamic = 0` | Aucun champ des statistiques `VrApi` ne rend compte du fovéal dynamique. Effet non observable avec cet outil. | logcat `VrApi` | — reste expérimental |
 
 ## Points à trancher lors des premiers essais
 

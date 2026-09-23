@@ -5,7 +5,10 @@ import android.os.Build
 import io.github.openquesttuner.adb.AdbIdentityStore
 import io.github.openquesttuner.adb.AdbShellBackend
 import io.github.openquesttuner.adb.ConnectionPrefs
+import io.github.openquesttuner.core.ProfileStore
 import io.github.openquesttuner.core.QuestModel
+import io.github.openquesttuner.core.Tuner
+import io.github.openquesttuner.games.GameRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,4 +29,10 @@ class AppContainer(context: Context) {
         identityStore = AdbIdentityStore(File(appContext.filesDir, "adb")),
         prefs = ConnectionPrefs(appContext),
     )
+
+    val profileStore = ProfileStore(File(appContext.filesDir, "profiles.json"))
+
+    val games = GameRepository(appContext)
+
+    val tuner = Tuner(adb, questModel)
 }

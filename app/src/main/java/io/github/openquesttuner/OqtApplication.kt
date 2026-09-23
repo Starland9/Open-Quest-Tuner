@@ -11,6 +11,7 @@ class OqtApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        container.appScope.launch { container.profileStore.load() }
         // Reconnexion silencieuse avec la dernière méthode réussie, sans bloquer l'interface (FR-005).
         container.appScope.launch { container.adb.reconnectLast() }
     }

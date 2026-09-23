@@ -35,7 +35,16 @@ enum class QuestModel(
         gpuLevels = 0..5,
         alwaysAvailableCpuMax = 3,
         alwaysAvailableGpuMax = 2,
-        verified = emptySet(),
+        // Essais sur Beat Saber, vros 207 (docs/compatibility.md, 2026-09-23). Le fovéal
+        // dynamique n'apparaît pas dans les statistiques VrApi : il reste expérimental.
+        verified = setOf(
+            QuestProperty.REFRESH_RATE,
+            QuestProperty.TEXTURE_WIDTH,
+            QuestProperty.TEXTURE_HEIGHT,
+            QuestProperty.CPU_LEVEL,
+            QuestProperty.GPU_LEVEL,
+            QuestProperty.FOVEATION_LEVEL,
+        ),
     ),
     QUEST_3S(
         displayName = "Quest 3S",

@@ -44,9 +44,13 @@ class QuestModelTest {
     }
 
     @Test
-    fun `rien n'est verifie tant que les essais sur casque ne sont pas faits`() {
+    fun `seuls les essais consignes sur casque sont verifies`() {
         // Principe III : tout est « expérimental » jusqu'à un essai consigné dans docs/compatibility.md.
-        QuestModel.entries.forEach { model ->
+        assertEquals(
+            QuestProperty.entries.toSet() - QuestProperty.FOVEATION_DYNAMIC,
+            QuestModel.QUEST_3.verified,
+        )
+        (QuestModel.entries - QuestModel.QUEST_3).forEach { model ->
             assertTrue("${model.name} ne devrait rien avoir de vérifié", model.verified.isEmpty())
         }
     }

@@ -50,7 +50,7 @@ périmètre : capture, `swapInterval`, `forceSpaceWarp`, `dynResScaler`, `eyeFov
 
 **Valeurs retenues pour le catalogue `QuestModel`** :
 
-| Modèle | Résolution de rendu par défaut / œil [C] | Fréquences proposées (Hz) [S, doc Meta] | CPU proposés [S, doc Meta] | GPU proposés [S, doc Meta] |
+| Modèle | Résolution de rendu par défaut / œil [C] S25 (doc officielle Meta « Render Scale ») | Fréquences proposées (Hz) [S, doc Meta] | CPU proposés [S, doc Meta] | GPU proposés [S, doc Meta] |
 |---|---|---|---|---|
 | Quest 3 | 1680×1760 (dalle 2064×2208) | 72, 80, 90, 96, 100, 120 | 0–4 | 0–5 |
 | Quest 3S | 1680×1760 (dalle 1832×1920) | 72, 80, 90, 96, 100, 120 | 0–4 | 0–5 |

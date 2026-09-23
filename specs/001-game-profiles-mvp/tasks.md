@@ -552,7 +552,7 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
 
 ### Tests for User Story 2
 
-- [ ] T045 [P] [US2] Écrire `app/src/test/java/io/github/openquesttuner/core/ProfileStoreTest.kt`,
+- [X] T045 [P] [US2] Écrire `app/src/test/java/io/github/openquesttuner/core/ProfileStoreTest.kt`,
   avec `TemporaryFolder` et [contracts/profiles-json.md](contracts/profiles-json.md) :
   - aller-retour `save` puis `load` ;
   - un profil vide supprime l'entrée ;
@@ -563,7 +563,7 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
     vide ;
   - avec `"version": 2`, pas de réécriture tant qu'aucun `save` n'a eu lieu ;
   - l'écriture passe par `profiles.json.tmp`, et il n'en reste aucun après un `save`.
-- [ ] T046 [P] [US2] Créer `app/src/test/java/io/github/openquesttuner/core/FakeShellBackend.kt`,
+- [X] T046 [P] [US2] Créer `app/src/test/java/io/github/openquesttuner/core/FakeShellBackend.kt`,
   qui enregistre les `command.text` exécutés et renvoie des résultats scriptés par préfixe de
   commande, ou lève `ShellUnavailableException` à la demande.
 
@@ -574,17 +574,17 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
   - une sortie `Error:` de `am start` donne `StepFailed(Launch, …)` ;
   - un profil invalide pour le modèle donne `InvalidProfile`, avec **aucune** commande exécutée ;
   - `ShellUnavailableException` donne `NotConnected`.
-- [ ] T047 [P] [US2] Écrire `app/src/test/java/io/github/openquesttuner/core/SearchKeyTest.kt` :
+- [X] T047 [P] [US2] Écrire `app/src/test/java/io/github/openquesttuner/core/SearchKeyTest.kt` :
   `searchKey("Éléphant Rouge") == "elephant rouge"`, `searchKey("  Beat SABER ") == "beat saber"`,
   et un tri par `searchKey` qui place « Élite » entre « Echo » et « Fable ».
 
 ### Implementation for User Story 2
 
-- [ ] T048 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/core/SearchKey.kt` :
+- [X] T048 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/core/SearchKey.kt` :
   `fun searchKey(s: String)`, qui applique `Normalizer.normalize(NFD)`, retire les marques
   diacritiques `\p{Mn}`, met en minuscules avec `Locale.ROOT` et applique `trim`. Faire passer
   T047.
-- [ ] T049 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/core/ProfileStore.kt` :
+- [X] T049 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/core/ProfileStore.kt` :
   - `class ProfileStore(file: File)` avec `profiles: StateFlow<Map<String, GameProfile>>`,
     `suspend fun load()`, `suspend fun save(pkg, profile)` et `suspend fun delete(pkg)` ;
   - `Mutex`, JSON `{ "version": 1, "profiles": {...} }` avec
@@ -592,14 +592,14 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
   - écriture atomique via `.tmp` puis `renameTo` ;
   - toutes les règles de [contracts/profiles-json.md](contracts/profiles-json.md) ;
   - uniquement `java.io`. Faire passer T045.
-- [ ] T050 [US2] Créer `app/src/main/java/io/github/openquesttuner/core/Tuner.kt` (dépend de
+- [X] T050 [US2] Créer `app/src/main/java/io/github/openquesttuner/core/Tuner.kt` (dépend de
   T013 à T016) :
   - `class Tuner(shell: ShellBackend, model: QuestModel)` ;
   - `suspend fun applyAndLaunch(pkg, activity, profile): TuneResult`, avec les types
     `TuneResult` et `TuneStep` de [data-model.md](data-model.md) ;
   - validation d'abord, puis la séquence « Appliquer et lancer » du contrat : arrêt au premier
     échec, `launch` en échec si `ShellOutput.isLaunchError(output)`. Faire passer T046.
-- [ ] T051 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/games/GameRepository.kt` :
+- [X] T051 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/games/GameRepository.kt` :
   - `data class InstalledGame(packageName, label, launchActivity)` ;
   - `suspend fun loadGames(): List<InstalledGame>` sur `Dispatchers.IO`, avec les deux sources de
     research.md R5 :
@@ -615,15 +615,15 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
   - `fun isInstalled(pkg: String): Boolean`, via `getPackageInfo` (`NameNotFoundException` →
     faux) ;
   - utiliser les API `*Flags.of(0)` sur API 33+, et les API dépréciées en dessous.
-- [ ] T052 [US2] Dans `app/src/main/java/io/github/openquesttuner/AppContainer.kt`, ajouter
+- [X] T052 [US2] Dans `app/src/main/java/io/github/openquesttuner/AppContainer.kt`, ajouter
   `profileStore = ProfileStore(File(context.filesDir, "profiles.json"))`, `games = GameRepository(context)`
   et `tuner = Tuner(adb, questModel)`. Lancer `profileStore.load()` au démarrage dans
   `OqtApplication`.
-- [ ] T053 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/ui/components/GameIcon.kt` :
+- [X] T053 [P] [US2] Créer `app/src/main/java/io/github/openquesttuner/ui/components/GameIcon.kt` :
   icône 48dp chargée par `produceState` sur `Dispatchers.IO` (`pm.getApplicationIcon(pkg).toBitmap(96, 96)`),
   avec un cache mémoire `LruCache<String, ImageBitmap>(200)` et une icône générique si le
   chargement échoue.
-- [ ] T054 [US2] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter :
+- [X] T054 [US2] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter :
   - `games: StateFlow<List<InstalledGame>>`, chargée à l'initialisation, et `refreshGames()` ;
   - `profiles`, en délégation au store ;
   - `questModel` ;
@@ -637,10 +637,10 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
     - `StepFailed(Launch)` quand `games.isInstalled(pkg)` est faux : message « jeu introuvable »,
       puis `refreshGames()` et retour à la liste (cas limite « jeu désinstallé… ») ;
   - un état `busy` pendant l'opération.
-- [ ] T055 [US2] Dans `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt`, remplacer le
+- [X] T055 [US2] Dans `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt`, remplacer le
   contenu provisoire par une `LazyColumn` de lignes d'au moins 64dp : `GameIcon`, nom, paquet en
   petit. Un appui ouvre `Screen.Profile(pkg)`.
-- [ ] T056 [US2] Créer `app/src/main/java/io/github/openquesttuner/ui/ProfileScreen.kt` :
+- [X] T056 [US2] Créer `app/src/main/java/io/github/openquesttuner/ui/ProfileScreen.kt` :
   - `TopAppBar` avec retour et nom du jeu. Brouillon local
     `remember(pkg) { mutableStateOf(saved ?: GameProfile()) }` ;
   - six `ChoiceRow` :
@@ -661,7 +661,7 @@ avec le profil, et `getprop` montre les 7 valeurs attendues.
   - barre du bas : « Enregistrer » (toujours actif) et « Appliquer et lancer ». Ce dernier est
     désactivé si l'appli n'est pas `Connected`, avec un texte explicatif et un bouton vers
     l'écran Connexion (FR-021).
-- [ ] T057 [US2] Brancher la route `Screen.Profile` dans
+- [X] T057 [US2] Brancher la route `Screen.Profile` dans
   `app/src/main/java/io/github/openquesttuner/ui/OqtApp.kt`, et ajouter toutes les chaînes de l'US2
   dans `app/src/main/res/values/strings.xml` **et** `app/src/main/res/values-fr/strings.xml`.
 - [ ] T058 [US2] Lancer `./gradlew test assembleDebug`, installer, puis dérouler les scénarios 2.1
