@@ -708,7 +708,7 @@ Cette story fait partie du MVP : c'est le filet de sécurité exigé par la cons
 - [X] T062 [US4] Dans `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt`, ajouter
   une carte « Outils » avec le bouton « Tout réinitialiser ». Hors connexion, il est désactivé
   avec le rappel : « un redémarrage du casque efface aussi tous les réglages ».
-- [ ] T063 [US4] Ajouter les chaînes de l'US4 dans `app/src/main/res/values/strings.xml` **et**
+- [X] T063 [US4] Ajouter les chaînes de l'US4 dans `app/src/main/res/values/strings.xml` **et**
   `app/src/main/res/values-fr/strings.xml`, lancer `./gradlew test assembleDebug`, puis dérouler
   le scénario 4.1 de [quickstart.md](quickstart.md).
   - ❌ 4.1, premier essai du 2026-09-23 (Quest 3, vros 207) : « Tout réinitialiser » déconnecte
@@ -717,8 +717,13 @@ Cette story fait partie du MVP : c'est le filet de sécurité exigé par la cons
     arrêté, jamais relancé). Cause : deux réveils perdus dans libadb 3.1.1 (research.md R3).
   - Correctif (contracts/shell-backend.md amendé) : lecture arrêtée au marqueur de fin
     (`ShellOutput.isComplete`), délai de 3 s par commande et 3 essais sur la même connexion
-    (`ConnectionPolicy.withRetries`). 7 tests JVM ajoutés, 109 au total. À revalider sur
-    casque.
+    (`ConnectionPolicy.withRetries`). 7 tests JVM ajoutés, 109 au total.
+  - ✅ 4.1 revalidé le 2026-09-23 après le correctif : « Tout réinitialiser » fonctionne, sans
+    déconnexion, et `getprop` renvoie une valeur vide pour les 7 clés.
+  - Retour utilisateur : l'écran profil garde ses choix après « Tout réinitialiser », ce qui
+    laisse croire que les réglages sont encore actifs. Textes clarifiés : l'écran montre le profil
+    enregistré, la réinitialisation ne touche que le casque et les profils sont conservés. Un
+    indicateur « actif sur le casque » est proposé avec l'US5 (lecture de `getprop`).
 
 **Checkpoint**: MVP complet. On se connecte, on règle et on lance un jeu, et on annule tout
 en un geste (principe I).
@@ -734,22 +739,22 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
 
 ### Tests for User Story 3
 
-- [ ] T064 [US3] Compléter `app/src/test/java/io/github/openquesttuner/core/SearchKeyTest.kt` avec
+- [X] T064 [US3] Compléter `app/src/test/java/io/github/openquesttuner/core/SearchKeyTest.kt` avec
   `matchesQuery("Beat Saber", "saber")`, `matchesQuery("Élite Dangerous", "elite")` et
   `matchesQuery("X", "")` (requête vide : vrai), ainsi que `matchesQuery("Beat Saber", "zzz")`
   (faux).
 
 ### Implementation for User Story 3
 
-- [ ] T065 [US3] Ajouter `fun matchesQuery(label: String, query: String): Boolean` à
+- [X] T065 [US3] Ajouter `fun matchesQuery(label: String, query: String): Boolean` à
   `app/src/main/java/io/github/openquesttuner/core/SearchKey.kt` : il est vrai si
   `searchKey(label)` contient `searchKey(query)`. Faire passer T064.
-- [ ] T066 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter :
+- [X] T066 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, ajouter :
   - `query` et `filteredGames`, combinaison de `games` et `query` ;
   - `deleteProfile(pkg)` ;
   - `quickLaunch(game)` : profil enregistré, ou `GameProfile()` pour tout remettre par défaut. Il
     passe par le même chemin qu'`applyAndLaunch`, et hérite donc de la gestion « jeu introuvable ».
-- [ ] T067 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt`, ajouter :
+- [X] T067 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt`, ajouter :
   - un champ de recherche en tête de liste ;
   - une puce « Profil » sur les jeux qui ont un profil non vide (FR-015) ;
   - une action « Actualiser » dans la `TopAppBar` ;
@@ -758,7 +763,7 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
     désactivés et propose « Se connecter », qui ouvre l'écran Connexion (FR-021) ;
   - un état vide explicatif s'il n'y a aucun jeu VR, et un autre pour une recherche sans
     résultat.
-- [ ] T068 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/ProfileScreen.kt`, ajouter
+- [X] T068 [US3] Dans `app/src/main/java/io/github/openquesttuner/ui/ProfileScreen.kt`, ajouter
   l'action « Supprimer le profil » dans la `TopAppBar` quand un profil existe, avec un
   `AlertDialog` de confirmation (FR-014). Après suppression, le brouillon revient à
   `GameProfile()`.

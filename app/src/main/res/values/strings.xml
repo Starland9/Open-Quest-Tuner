@@ -45,7 +45,7 @@
     <string name="switch_wireless_failed">The wireless connection failed. Try again in a moment.</string>
     <string name="switch_not_connected">Connect via PC first.</string>
     <!-- US2 : jeux et profils -->
-    <string name="games_empty">No VR game found on this headset.</string>
+    <string name="games_empty">No VR game found on this headset. Install a game, then tap Refresh.</string>
     <string name="profile_model_detected">Detected headset: %1$s</string>
     <string name="profile_unknown_model">Unrecognized headset: Quest 3 values are offered and every setting is experimental.</string>
     <string name="setting_default">Game default</string>
@@ -87,8 +87,23 @@
     <!-- US4 : tout réinitialiser -->
     <string name="tools_title">Tools</string>
     <string name="reset_all">Reset all</string>
-    <string name="reset_all_hint">Sets the 7 settings managed by the app back to their defaults, for every game.</string>
+    <string name="reset_all_hint">Sets the 7 settings active on the headset back to their defaults, for every game. Your saved profiles are kept and applied again at the next launch from the app.</string>
     <string name="reset_all_disconnected">Connect the app to reset. A headset restart also clears every setting.</string>
-    <string name="reset_success">All settings are back to their defaults.</string>
+    <string name="reset_success">Headset settings are back to their defaults. Your profiles are kept.</string>
     <string name="reset_partial">Reset incomplete for: %1$s. Try again, or restart the headset.</string>
+    <!-- US3 : retrouver et gérer ses profils -->
+    <string name="refresh">Refresh</string>
+    <string name="search_games">Search a game</string>
+    <string name="search_clear">Clear the search</string>
+    <string name="games_no_match">No game matches “%1$s”.</string>
+    <string name="games_launch_disabled">Launching is disabled: the app is not connected to the headset.</string>
+    <string name="games_connect">Connect</string>
+    <string name="profile_badge">Profile</string>
+    <string name="delete_profile_title">Delete the profile</string>
+    <string name="delete_profile_text">Every setting of “%1$s” will go back to “Game default”. Settings already applied to the headset stay active until “Reset all” or a restart.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="profile_deleted">Profile deleted.</string>
+    <string name="profile_delete_failed">The profile could not be deleted.</string>
+    <string name="profile_saved_hint">Saved profile for this game: it is applied to the headset at each launch from OpenQuestTuner.</string>
 </resources>

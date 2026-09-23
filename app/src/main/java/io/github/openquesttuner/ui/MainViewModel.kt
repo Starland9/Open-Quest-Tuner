@@ -15,13 +15,17 @@ import io.github.openquesttuner.core.QuestProperty
 import io.github.openquesttuner.core.TuneResult
 import io.github.openquesttuner.core.TuneStep
 import io.github.openquesttuner.core.WirelessSwitchResult
+import io.github.openquesttuner.core.matchesQuery
 import io.github.openquesttuner.games.InstalledGame
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -58,10 +62,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _loadingGames = MutableStateFlow(true)
     val loadingGames: StateFlow<Boolean> = _loadingGames.asStateFlow()
 
-    private val _tuning = MutableStateFlow(false)
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
 
-    /** « Appliquer et lancer » en cours : le bouton est désactivé pour éviter les doubles envois. */
-    val tuning: StateFlow<Boolean> = _tuning.asStateFlow()
+    /** Liste filtrée au fil de la saisie, sans casse ni accents (FR-009). */
+    val filteredGames: StateFlow<List<InstalledGame>> = combine(_games, _query) { games, query ->
+        games.filter { matchesQuery(it.label, query) }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    private val _tuningPackage = MutableStateFlow<String?>(null)
+
+    /**
+     * Jeu en cours de lancement, ou `null`. Tous les boutons de lancement sont désactivés pendant
+     * l'opération, pour éviter les doubles envois.
+     */
+    val tuningPackage: StateFlow<String?> = _tuningPackage.asStateFlow()
 
     init {
         refreshGames()
@@ -145,17 +160,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** FR-019 : enregistrer, puis arrêter le jeu, appliquer les 7 propriétés et lancer. */
-    fun applyAndLaunch(game: InstalledGame, profile: GameProfile) {
-        if (_tuning.value) return
-        _tuning.value = true
+    fun setQuery(query: String) {
+        _query.value = query
+    }
+
+    fun deleteProfile(packageName: String) {
         viewModelScope.launch {
             try {
-                if (!persist(game.packageName, profile)) return@launch
+                container.profileStore.delete(packageName)
+                showMessage(R.string.profile_deleted)
+            } catch (e: IOException) {
+                Log.w(TAG, "Suppression du profil impossible : ${e.message}")
+                showMessage(R.string.profile_delete_failed)
+            }
+        }
+    }
+
+    /** FR-019 : enregistrer, puis arrêter le jeu, appliquer les 7 propriétés et lancer. */
+    fun applyAndLaunch(game: InstalledGame, profile: GameProfile) = launchGame(game, profile, persistFirst = true)
+
+    /**
+     * « Lancer » depuis la liste (US3) : profil enregistré, ou tous les réglages par défaut s'il
+     * n'y en a pas. Même chemin qu'« Appliquer et lancer », sans réécrire le profil.
+     */
+    fun quickLaunch(game: InstalledGame) =
+        launchGame(game, profiles.value[game.packageName] ?: GameProfile(), persistFirst = false)
+
+    private fun launchGame(game: InstalledGame, profile: GameProfile, persistFirst: Boolean) {
+        if (_tuningPackage.value != null) return
+        _tuningPackage.value = game.packageName
+        viewModelScope.launch {
+            try {
+                if (persistFirst && !persist(game.packageName, profile)) return@launch
                 val result = container.tuner.applyAndLaunch(game.packageName, game.launchActivity, profile)
                 onTuneResult(game, result)
             } finally {
-                _tuning.value = false
+                _tuningPackage.value = null
             }
         }
     }

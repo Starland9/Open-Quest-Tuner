@@ -15,6 +15,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -68,9 +70,36 @@ fun ProfileScreen(
     onSave: (GameProfile) -> Unit,
     onApplyAndLaunch: (GameProfile) -> Unit,
     onOpenConnection: () -> Unit,
+    onDelete: () -> Unit,
 ) {
-    // Suit aussi le profil enregistré, qui peut arriver après l'ouverture de l'écran au démarrage.
+    // Suit aussi le profil enregistré, qui peut arriver après l'ouverture de l'écran au démarrage,
+    // et revient à « Par défaut du jeu » partout quand le profil est supprimé.
     var draft by remember(game.packageName, saved) { mutableStateOf(saved ?: GameProfile()) }
+    var confirmDelete by remember { mutableStateOf(false) }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.delete_profile_title)) },
+            text = { Text(stringResource(R.string.delete_profile_text, game.label)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        onDelete()
+                    },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -79,6 +108,14 @@ fun ProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+                actions = {
+                    // FR-014 : suppression proposée seulement si un profil est enregistré.
+                    if (saved != null) {
+                        IconButton(onClick = { confirmDelete = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_profile_title))
+                        }
                     }
                 },
             )
@@ -113,6 +150,9 @@ fun ProfileScreen(
 
 @Composable
 private fun ModelInfo(model: QuestModel) {
+    // L'écran montre le profil enregistré, pas l'état actuel du casque : « Tout réinitialiser »
+    // vide le casque mais garde les profils.
+    Text(stringResource(R.string.profile_saved_hint), style = MaterialTheme.typography.bodyMedium)
     if (model == QuestModel.UNKNOWN) {
         NoticeCard(stringResource(R.string.profile_unknown_model), MaterialTheme.colorScheme.tertiary)
     } else {

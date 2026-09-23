@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.openquesttuner.R
+import io.github.openquesttuner.core.ConnectionState
 import io.github.openquesttuner.ui.components.ConnectionBadge
 
 @Composable
@@ -42,13 +43,24 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
             val games by vm.games.collectAsState()
             val loadingGames by vm.loadingGames.collectAsState()
             val profiles by vm.profiles.collectAsState()
-            val tuning by vm.tuning.collectAsState()
+            val filteredGames by vm.filteredGames.collectAsState()
+            val query by vm.query.collectAsState()
+            val tuningPackage by vm.tuningPackage.collectAsState()
             val resetting by vm.resetting.collectAsState()
             when (val screen = backStack.last()) {
                 Screen.Games -> GamesScreen(
-                    games = games,
+                    games = filteredGames,
+                    totalGames = games.size,
                     loading = loadingGames,
+                    query = query,
+                    onQueryChange = vm::setQuery,
+                    profiledPackages = profiles.keys,
+                    connected = connectionState is ConnectionState.Connected,
+                    tuningPackage = tuningPackage,
                     onOpenGame = { vm.navigate(Screen.Profile(it.packageName)) },
+                    onLaunch = vm::quickLaunch,
+                    onRefresh = vm::refreshGames,
+                    onOpenConnection = { vm.navigate(Screen.Connection) },
                     actions = {
                         ConnectionBadge(
                             state = connectionState,
@@ -79,11 +91,12 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                             saved = profiles[game.packageName],
                             model = vm.questModel,
                             connectionState = connectionState,
-                            tuning = tuning,
+                            tuning = tuningPackage != null,
                             onBack = { vm.back() },
                             onSave = { vm.saveProfile(game.packageName, it) },
                             onApplyAndLaunch = { vm.applyAndLaunch(game, it) },
                             onOpenConnection = { vm.navigate(Screen.Connection) },
+                            onDelete = { vm.deleteProfile(game.packageName) },
                         )
                     }
                 }

@@ -14,3 +14,6 @@ fun searchKey(s: String): String =
         .replace(COMBINING_MARKS, "")
         .lowercase(Locale.ROOT)
         .trim()
+
+/** Filtre de la liste des jeux (FR-009) : une requête vide garde tout. */
+fun matchesQuery(label: String, query: String): Boolean = searchKey(label).contains(searchKey(query))

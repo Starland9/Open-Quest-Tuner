@@ -44,7 +44,7 @@
     <string name="switch_wireless_failed">La connexion sans fil a échoué. Réessaie dans un instant.</string>
     <string name="switch_not_connected">Connecte-toi d\'abord via PC.</string>
     <!-- US2 : jeux et profils -->
-    <string name="games_empty">Aucun jeu VR trouvé sur ce casque.</string>
+    <string name="games_empty">Aucun jeu VR trouvé sur ce casque. Installe un jeu, puis touche Actualiser.</string>
     <string name="profile_model_detected">Casque détecté : %1$s</string>
     <string name="profile_unknown_model">Casque non reconnu : les valeurs du Quest 3 sont proposées et tous les réglages sont expérimentaux.</string>
     <string name="setting_default">Par défaut du jeu</string>
@@ -86,8 +86,23 @@
     <!-- US4 : tout réinitialiser -->
     <string name="tools_title">Outils</string>
     <string name="reset_all">Tout réinitialiser</string>
-    <string name="reset_all_hint">Remet les 7 réglages gérés par l\'appli à leur valeur par défaut, pour tous les jeux.</string>
+    <string name="reset_all_hint">Remet les 7 réglages actifs sur le casque à leur valeur par défaut, pour tous les jeux. Tes profils enregistrés sont conservés et réappliqués au prochain lancement depuis l\'appli.</string>
     <string name="reset_all_disconnected">Connecte l\'appli pour réinitialiser. Un redémarrage du casque efface aussi tous les réglages.</string>
-    <string name="reset_success">Tous les réglages sont revenus par défaut.</string>
+    <string name="reset_success">Réglages du casque remis par défaut. Tes profils sont conservés.</string>
     <string name="reset_partial">Réinitialisation incomplète pour : %1$s. Réessaie, ou redémarre le casque.</string>
+    <!-- US3 : retrouver et gérer ses profils -->
+    <string name="refresh">Actualiser</string>
+    <string name="search_games">Rechercher un jeu</string>
+    <string name="search_clear">Effacer la recherche</string>
+    <string name="games_no_match">Aucun jeu ne correspond à « %1$s ».</string>
+    <string name="games_launch_disabled">Lancements désactivés : l\'appli n\'est pas connectée au casque.</string>
+    <string name="games_connect">Se connecter</string>
+    <string name="profile_badge">Profil</string>
+    <string name="delete_profile_title">Supprimer le profil</string>
+    <string name="delete_profile_text">Tous les réglages de « %1$s » repasseront sur « Par défaut du jeu ». Les réglages déjà appliqués au casque restent actifs jusqu\'à « Tout réinitialiser » ou un redémarrage.</string>
+    <string name="delete">Supprimer</string>
+    <string name="cancel">Annuler</string>
+    <string name="profile_deleted">Profil supprimé.</string>
+    <string name="profile_delete_failed">Impossible de supprimer le profil.</string>
+    <string name="profile_saved_hint">Profil enregistré pour ce jeu : il est appliqué au casque à chaque lancement depuis OpenQuestTuner.</string>
 </resources>
