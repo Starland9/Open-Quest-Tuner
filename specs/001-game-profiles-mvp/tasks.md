@@ -47,14 +47,14 @@ livrée et testée seule.
 **Purpose**: projet Gradle qui se configure. Le wrapper Gradle (`gradlew`,
 `gradle/wrapper/gradle-wrapper.jar`) et `LICENSE` (GPL-3.0) existent déjà.
 
-- [ ] T001 Créer `settings.gradle.kts` :
+- [X] T001 Créer `settings.gradle.kts` :
   - `pluginManagement` avec les dépôts `google()`, `mavenCentral()` et `gradlePluginPortal()` ;
   - `dependencyResolutionManagement` avec `repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)`
     et les dépôts `google()`, `mavenCentral()` et
     `maven("https://jitpack.io") { content { includeGroupByRegex("com\\.github\\.MuntashirAkon.*") } }`
     (le filtre JitPack est exigé par research.md, section Toolchain) ;
   - `rootProject.name = "OpenQuestTuner"` et `include(":app")`.
-- [ ] T002 [P] Créer trois fichiers :
+- [X] T002 [P] Créer trois fichiers :
   - `build.gradle.kts` (racine) avec les plugins en `apply false` :
     `com.android.application` 8.13.2, `org.jetbrains.kotlin.android` 2.2.20,
     `org.jetbrains.kotlin.plugin.compose` 2.2.20, `org.jetbrains.kotlin.plugin.serialization` 2.2.20 ;
@@ -64,7 +64,7 @@ livrée et testée seule.
   - `gradle/wrapper/gradle-wrapper.properties` pointant sur
     `https\://services.gradle.org/distributions/gradle-9.4.1-bin.zip`, avec
     `networkTimeout=10000` et `validateDistributionUrl=true`.
-- [ ] T003 [P] Créer `app/build.gradle.kts` :
+- [X] T003 [P] Créer `app/build.gradle.kts` :
   - plugins : android application, kotlin android, compose, serialization ;
   - `namespace` et `applicationId` = `io.github.openquesttuner`, `compileSdk = 35`, `minSdk = 29`,
     `targetSdk = 34`, `versionCode = 1`, `versionName = "0.1.0"` ;
@@ -89,10 +89,10 @@ livrée et testée seule.
     - `org.bouncycastle:bcpkix-jdk15to18:1.81`
     - `testImplementation("junit:junit:4.13.2")`
     - `testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")`
-- [ ] T004 [P] Créer `.gitignore` avec `.gradle/`, `build/`, `local.properties`, `.idea/`,
+- [X] T004 [P] Créer `.gitignore` avec `.gradle/`, `build/`, `local.properties`, `.idea/`,
   `*.iml`, `.kotlin/`, `captures/`, `.externalNativeBuild/` et `.cxx/`. Créer `local.properties`
   avec `sdk.dir=/home/landry/Android/Sdk` (ce fichier est ignoré par git).
-- [ ] T005 Créer `app/src/main/AndroidManifest.xml` :
+- [X] T005 Créer `app/src/main/AndroidManifest.xml` :
   - permissions : `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `QUERY_ALL_PACKAGES`
     (avec `tools:ignore="QueryAllPackagesPermission"`, justifié par research.md R5) ;
   - `<uses-feature android:name="android.hardware.vr.headtracking" android:required="false"/>` ;
@@ -104,7 +104,7 @@ livrée et testée seule.
     `android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density"`, et
     `<layout android:defaultWidth="1024dp" android:defaultHeight="640dp"/>` (taille du panneau,
     research.md R4).
-- [ ] T006 [P] Créer les ressources de base :
+- [X] T006 [P] Créer les ressources de base :
   - `app/src/main/res/values/themes.xml` : style `Theme.OpenQuestTuner`, parent
     `android:Theme.Material.NoActionBar`, fond `#FF101418` ;
   - `app/src/main/res/values/colors.xml` : `ic_launcher_background` = `#FF0B3D5C` ;
@@ -125,7 +125,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
 
 ### Tests du cœur (écrits d'abord, ils doivent échouer)
 
-- [ ] T007 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/QuestModelTest.kt`. Cas à
+- [X] T007 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/QuestModelTest.kt`. Cas à
   tester :
   - `fromBuild("eureka", "x") == QUEST_3`, `fromBuild("panther", "x") == QUEST_3S`,
     `fromBuild("hollywood", "x") == QUEST_2`, `fromBuild("seacliff", "x") == QUEST_PRO` ;
@@ -135,7 +135,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
   - `UNKNOWN` a les mêmes valeurs que `QUEST_3`, avec `verified` vide ;
   - `verified` est vide pour tous les modèles ;
   - pour chaque modèle, `EyeTexture.forStep(defaultEyeTexture, 100) == defaultEyeTexture`.
-- [ ] T008 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/GameProfileTest.kt`. Cas à
+- [X] T008 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/GameProfileTest.kt`. Cas à
   tester :
   - `forStep(EyeTexture(1680,1760), 120) == EyeTexture(2016,2112)` ;
   - `forStep(EyeTexture(1440,1584), 70)` arrondit chaque dimension au multiple de 8 le plus
@@ -153,7 +153,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
     `SMOOTHNESS` si `r > 130`, avec `r = width × 100 / default.width` ;
   - aller-retour JSON avec `Json { ignoreUnknownKeys = true; encodeDefaults = false }` : les
     champs `null` ne sont pas écrits, et `foveationLevel` est sérialisé par son nom (`"MEDIUM"`).
-- [ ] T009 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/ShellCommandsTest.kt`, en
+- [X] T009 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/ShellCommandsTest.kt`, en
   vérifiant les textes exacts de [contracts/shell-commands.md](contracts/shell-commands.md) :
   - `setProperty(REFRESH_RATE, 90).text == "setprop debug.oculus.refreshRate 90"` ;
   - `resetProperty(CPU_LEVEL).text == "setprop debug.oculus.cpuLevel ''"` ;
@@ -167,7 +167,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
   - une activité avec `$` (classe interne) est acceptée et reste entre quotes simples ;
   - aucune commande générable (toutes les propriétés, reset et set à leurs bornes) ne contient
     `persist.`.
-- [ ] T010 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/ShellOutputTest.kt`. Cas à
+- [X] T010 [P] Écrire `app/src/test/java/io/github/openquesttuner/core/ShellOutputTest.kt`. Cas à
   tester :
   - `parse("hello\n__OQT_EXIT__:0\n")` donne `ShellResult(0, "hello")` ;
   - un code non nul (`__OQT_EXIT__:1`) est conservé ;
@@ -180,7 +180,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
 
 ### Implémentation du cœur
 
-- [ ] T011 [P] Créer `app/src/main/java/io/github/openquesttuner/core/QuestProperty.kt` :
+- [X] T011 [P] Créer `app/src/main/java/io/github/openquesttuner/core/QuestProperty.kt` :
   - `enum class QuestProperty(val key: String, val absoluteRange: IntRange)`, dans cet ordre, qui
     est aussi l'ordre d'application :
     - `REFRESH_RATE("debug.oculus.refreshRate", 60..240)`
@@ -192,7 +192,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
     - `FOVEATION_DYNAMIC("debug.oculus.foveation.dynamic", 0..1)`
   - `@Serializable enum class FoveationLevel(val code: Int)` : `OFF(0)`, `LOW(1)`, `MEDIUM(2)`,
     `HIGH(3)`, `HIGH_TOP(4)`.
-- [ ] T012 [P] Créer `app/src/main/java/io/github/openquesttuner/core/ShellBackend.kt`, en reprenant
+- [X] T012 [P] Créer `app/src/main/java/io/github/openquesttuner/core/ShellBackend.kt`, en reprenant
   exactement [contracts/shell-backend.md](contracts/shell-backend.md) : `interface ShellBackend`
   (`state: StateFlow<ConnectionState>`, `suspend fun exec(command: ShellCommand): ShellResult`),
   `data class ShellResult(exitCode: Int?, output: String)` avec `isSuccess`,
@@ -200,7 +200,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
   `sealed interface ConnectionState` (`Disconnected`, `Pairing`, `Connecting(method)`,
   `Connected(method)`, `Failed(method?, reason)`), et `enum FailureReason` (`PORT_CLOSED`,
   `NOT_AUTHORIZED`, `PAIRING_REQUIRED`, `PAIRING_CODE_REJECTED`, `SERVICE_NOT_FOUND`, `UNKNOWN`).
-- [ ] T013 Créer deux fichiers (dépend de T011) :
+- [X] T013 Créer deux fichiers (dépend de T011) :
   - `app/src/main/java/io/github/openquesttuner/core/EyeTexture.kt` :
     - `@Serializable data class EyeTexture(val width: Int, val height: Int)`, avec dans le
       companion `MIN_DIM = 512` et `MAX_DIM = 3072` (bornes « [512, 3072] ») ;
@@ -225,7 +225,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
     - `companion fun fromBuild(device: String, model: String): QuestModel` : DEVICE sans tenir compte
       de la casse, puis MODEL, sinon `UNKNOWN` ;
     - `fun isVerified(p: QuestProperty) = p in verified`.
-- [ ] T014 Créer `app/src/main/java/io/github/openquesttuner/core/GameProfile.kt` (dépend de T011
+- [X] T014 Créer `app/src/main/java/io/github/openquesttuner/core/GameProfile.kt` (dépend de T011
   et de T013), en suivant [data-model.md](data-model.md) :
   - `@Serializable data class GameProfile(refreshRate: Int? = null, eyeTexture: EyeTexture? = null,
     cpuLevel: Int? = null, gpuLevel: Int? = null, foveationLevel: FoveationLevel? = null,
@@ -234,7 +234,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
   - `data class ProfileViolation(val property: QuestProperty, val value: Int)` ;
   - `enum ProfileWarning { HEAT, SMOOTHNESS }` ;
   - faire passer T008.
-- [ ] T015 Créer `app/src/main/java/io/github/openquesttuner/core/ShellCommands.kt` (dépend de T011) :
+- [X] T015 Créer `app/src/main/java/io/github/openquesttuner/core/ShellCommands.kt` (dépend de T011) :
   - `class ShellCommand private constructor(val text: String)` avec
     `val wireText get() = "$text; echo __OQT_EXIT__:\$?"` ;
   - un `companion object` qui est la **seule** fabrique : `setProperty(prop, value: Int)`,
@@ -246,7 +246,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
     `value in prop.absoluteRange` ;
   - quotes simples autour du paquet et de `pkg/activity` ;
   - faire passer T009.
-- [ ] T016 Créer `app/src/main/java/io/github/openquesttuner/core/ShellOutput.kt` (dépend de T012) :
+- [X] T016 Créer `app/src/main/java/io/github/openquesttuner/core/ShellOutput.kt` (dépend de T012) :
   - `object ShellOutput`, avec `const val EXIT_MARKER = "__OQT_EXIT__:"` ;
   - `fun parse(raw: String): ShellResult` : dernier marqueur, `\r` retirés, marqueur ôté de la
     sortie, `trimEnd` ;
@@ -258,32 +258,32 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
 
 ### Squelette d'interface (couche Android)
 
-- [ ] T017 [P] Créer `app/src/main/java/io/github/openquesttuner/ui/theme/Theme.kt` :
+- [X] T017 [P] Créer `app/src/main/java/io/github/openquesttuner/ui/theme/Theme.kt` :
   - `OqtTheme` en Material 3 `darkColorScheme` **toujours sombre** (confort en VR) : primaire
     cyan `#7FD4FF`, surfaces `#101418`/`#1A2027`, erreur `#FFB4AB` ;
   - typographie Material 3 par défaut, avec `bodyLarge`/`bodyMedium` agrandis de 2sp pour la
     lisibilité dans le casque.
-- [ ] T018 [P] Créer deux composants :
+- [X] T018 [P] Créer deux composants :
   - `app/src/main/java/io/github/openquesttuner/ui/components/ChoiceRow.kt` : `@Composable fun
     <T> ChoiceRow(title: String, options: List<Pair<T?, String>>, selected: T?, onSelect: (T?) -> Unit,
     experimental: Boolean, helpText: String? = null)`. C'est un `FlowRow` de `FilterChip`, dont la
     première option `null` = « Par défaut du jeu ». Hauteur minimale 48dp (FR-030) ;
   - `app/src/main/java/io/github/openquesttuner/ui/components/ExperimentalBadge.kt` : petite
     pastille « Expérimental » (string `experimental`).
-- [ ] T019 Créer deux fichiers :
+- [X] T019 Créer deux fichiers :
   - `app/src/main/java/io/github/openquesttuner/AppContainer.kt` : DI manuelle, avec
     `val questModel = QuestModel.fromBuild(Build.DEVICE, Build.MODEL)` et
     `val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)`. Les autres champs
     seront ajoutés par les stories ;
   - `app/src/main/java/io/github/openquesttuner/OqtApplication.kt` : crée `container` dans
     `onCreate`.
-- [ ] T020 Créer `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt` :
+- [X] T020 Créer `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt` :
   - `AndroidViewModel`, qui récupère `(application as OqtApplication).container` ;
   - `sealed interface Screen { Games; Connection; data class Profile(val packageName: String) }`
     et une pile `StateFlow<List<Screen>>` avec `navigate(screen)` et `back(): Boolean` ;
   - `data class UiMessage(@StringRes val res: Int, val args: List<Any> = emptyList())` émis dans
     un `Channel` exposé en `Flow` (snackbars).
-- [ ] T021 Créer trois fichiers :
+- [X] T021 Créer trois fichiers :
   - `app/src/main/java/io/github/openquesttuner/MainActivity.kt` : `ComponentActivity` avec
     `setContent { OqtTheme { OqtApp() } }` ;
   - `app/src/main/java/io/github/openquesttuner/ui/OqtApp.kt` : `Scaffold` avec `SnackbarHost`,
@@ -291,7 +291,7 @@ interface `ShellBackend` et squelette d'interface. Toutes les stories en dépend
     la pile, et gère `BackHandler(enabled = pile.size > 1) { vm.back() }` ;
   - `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt` provisoire :
     `TopAppBar` « OpenQuestTuner » avec un emplacement `actions` et un contenu vide.
-- [ ] T022 Vérifier que `./gradlew test assembleDebug` réussit, avec tous les tests
+- [X] T022 Vérifier que `./gradlew test assembleDebug` réussit, avec tous les tests
   T007 à T010 verts. Corriger les conflits de packaging s'il y en a (exclusions `META-INF`
   BouncyCastle).
 
@@ -312,12 +312,12 @@ reconnecte après fermeture et réouverture de l'appli.
 
 ### Tests for User Story 1
 
-- [ ] T023 [P] [US1] Écrire `app/src/test/java/io/github/openquesttuner/core/ConnectionInputTest.kt` :
+- [X] T023 [P] [US1] Écrire `app/src/test/java/io/github/openquesttuner/core/ConnectionInputTest.kt` :
   - `isValidPairingCode("123456")` est vrai ;
   - `"12345"`, `"1234567"`, `"12a456"` et `" 123456"` sont refusés ;
   - `parsePort("37123") == 37123` ;
   - `parsePort("0")`, `parsePort("65536")`, `parsePort("")` et `parsePort("12;3")` renvoient `null`.
-- [ ] T024 [P] [US1] Écrire `app/src/test/java/io/github/openquesttuner/core/ConnectionPolicyTest.kt` :
+- [X] T024 [P] [US1] Écrire `app/src/test/java/io/github/openquesttuner/core/ConnectionPolicyTest.kt` :
   - `classify(ConnectException(), CONNECT) == PORT_CLOSED`, et aussi en phase `PAIRING` (mauvais
     port d'appairage) ;
   - `classify(IOException("boom"), PAIRING) == PAIRING_CODE_REJECTED` ;
@@ -338,10 +338,10 @@ reconnecte après fermeture et réouverture de l'appli.
 
 ### Implementation for User Story 1
 
-- [ ] T025 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/core/ConnectionInput.kt` :
+- [X] T025 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/core/ConnectionInput.kt` :
   `object ConnectionInput` avec `isValidPairingCode(code)` (regex « `^[0-9]{6}$` ») et
   `parsePort(text): Int?` (« entier dans 1–65535 »). Faire passer T023.
-- [ ] T026 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/core/ConnectionPolicy.kt`
+- [X] T026 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/core/ConnectionPolicy.kt`
   (dépend de T012). C'est la politique de connexion, testable en JVM : la couche ADB reste mince
   (principe IV). Contenu :
   - `enum class ConnectPhase { PAIRING, DISCOVERY, CONNECT }` ;
@@ -368,7 +368,7 @@ reconnecte après fermeture et réouverture de l'appli.
     - `null` → `[]`.
 
   Faire passer T024.
-- [ ] T027 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/adb/AdbIdentityStore.kt` :
+- [X] T027 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/adb/AdbIdentityStore.kt` :
   - `class AdbIdentityStore(dir: File)` avec `@Synchronized fun loadOrCreate(): AdbIdentity`
     (`privateKey: PrivateKey`, `certificate: X509Certificate`) ;
   - génération : `KeyPairGenerator` RSA 2048, puis certificat auto-signé BouncyCastle
@@ -378,7 +378,7 @@ reconnecte après fermeture et réouverture de l'appli.
     fichier temporaire puis renommés ;
   - la clé n'est **jamais** journalisée (FR-027) ;
   - si les fichiers sont illisibles, régénérer la paire.
-- [ ] T028 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/adb/OqtAdbConnectionManager.kt` :
+- [X] T028 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/adb/OqtAdbConnectionManager.kt` :
   - classe qui étend `io.github.muntashirakon.adb.AbsAdbConnectionManager` et reçoit une
     `AdbIdentity` ;
   - dans `init` : `setApi(Build.VERSION.SDK_INT)` (**obligatoire**, sinon pas de TLS) et
@@ -386,10 +386,10 @@ reconnecte après fermeture et réouverture de l'appli.
   - redéfinit `getPrivateKey()`, `getCertificate()` et `getDeviceName() = "OpenQuestTuner"` ;
   - un commentaire KDoc précise de ne **jamais** appeler `close()` (qui détruit la clé privée) et
     d'utiliser `disconnect()`.
-- [ ] T029 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/adb/ConnectionPrefs.kt` :
+- [X] T029 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/adb/ConnectionPrefs.kt` :
   SharedPreferences `connection`, avec `lastMethod: ConnectionMethod?` et
   `lastWirelessPort: Int?` en lecture et en écriture.
-- [ ] T030 [US1] Créer `app/src/main/java/io/github/openquesttuner/adb/AdbShellBackend.kt`
+- [X] T030 [US1] Créer `app/src/main/java/io/github/openquesttuner/adb/AdbShellBackend.kt`
   (dépend de T012, T015, T016, T026, T027 à T029). Il implémente `ShellBackend` selon
   [contracts/shell-backend.md](contracts/shell-backend.md). Toutes les décisions passent par
   `ConnectionPolicy` ; ce fichier ne fait que brancher libadb dessus (principe IV) :
@@ -421,20 +421,20 @@ reconnecte après fermeture et réouverture de l'appli.
     flux. Puis `ShellOutput.parse`. Une `IOException` à l'ouverture donne `Disconnected` et lève
     `ShellUnavailableException` ;
   - aucune autre chaîne ne peut être envoyée au shell.
-- [ ] T031 [US1] Dans `app/src/main/java/io/github/openquesttuner/AppContainer.kt`, ajouter
+- [X] T031 [US1] Dans `app/src/main/java/io/github/openquesttuner/AppContainer.kt`, ajouter
   `val adb = AdbShellBackend(context, AdbIdentityStore(File(context.filesDir, "adb")), ConnectionPrefs(context))`.
   Dans `app/src/main/java/io/github/openquesttuner/OqtApplication.kt`, lancer
   `container.appScope.launch { container.adb.reconnectLast() }` dans `onCreate` (FR-005).
-- [ ] T032 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/ui/components/ConnectionBadge.kt` :
+- [X] T032 [P] [US1] Créer `app/src/main/java/io/github/openquesttuner/ui/components/ConnectionBadge.kt` :
   - puce cliquable avec une pastille de couleur (vert = connecté, orange = en cours, gris =
     déconnecté, rouge = échec) et un libellé : « Connecté (sans fil) », « Connecté (via PC) »,
     « Connexion… », « Appairage… », « Déconnecté », « Échec » ;
   - `onClick` ouvre l'écran Connexion.
-- [ ] T033 [US1] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, exposer
+- [X] T033 [US1] Dans `app/src/main/java/io/github/openquesttuner/ui/MainViewModel.kt`, exposer
   `connectionState` et ajouter `pair(portText, code)`, `connectWireless(portText?)`,
   `connectPc()` et `disconnect()`, qui délèguent à `container.adb` dans `viewModelScope`. Les
   saisies passent d'abord par `ConnectionInput`, et ne sont jamais envoyées au shell.
-- [ ] T034 [US1] Créer `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt` :
+- [X] T034 [US1] Créer `app/src/main/java/io/github/openquesttuner/ui/ConnectionScreen.kt` :
   - carte d'état : état, méthode, cause d'échec et action suggérée pour chaque `FailureReason`
     (FR-004), plus un bouton « Se déconnecter » (FR-006) ;
   - carte « Sans PC (recommandé) » :
@@ -452,11 +452,11 @@ reconnecte après fermeture et réouverture de l'appli.
   - carte « Avec un PC » : étapes avec la commande `adb tcpip 5555` en police mono, et le rappel
     d'accepter l'invite dans le casque. Bouton « Se connecter (via PC) » ;
   - écran défilable, cibles d'au moins 48dp.
-- [ ] T035 [US1] Dans `app/src/main/java/io/github/openquesttuner/ui/OqtApp.kt` et
+- [X] T035 [US1] Dans `app/src/main/java/io/github/openquesttuner/ui/OqtApp.kt` et
   `app/src/main/java/io/github/openquesttuner/ui/GamesScreen.kt`, brancher la route
   `Screen.Connection` et placer `ConnectionBadge` dans les `actions` de la `TopAppBar` de l'écran
   Jeux.
-- [ ] T036 [US1] Ajouter toutes les chaînes de l'US1 (états, étapes, libellés) dans
+- [X] T036 [US1] Ajouter toutes les chaînes de l'US1 (états, étapes, libellés) dans
   `app/src/main/res/values/strings.xml` (anglais) **et** `app/src/main/res/values-fr/strings.xml`
   (français). Pour chaque `FailureReason`, la cause et l'action suggérée (FR-004) sont, en
   français :
@@ -737,7 +737,8 @@ depuis la liste (FR-009, FR-010, FR-014, FR-015).
   contient `import android.` ou `import androidx.` (principe IV).
 - [ ] T069 [P] Écrire `app/src/test/java/io/github/openquesttuner/StringsParityTest.kt` : il parse
   `app/src/main/res/values/strings.xml` et `app/src/main/res/values-fr/strings.xml`, puis échoue
-  si les ensembles de `name` diffèrent (FR-029, SC-010).
+  si les ensembles de `name` diffèrent, en ignorant les chaînes `translatable="false"` comme
+  `app_name` (FR-029, SC-010).
 - [ ] T070 [P] Créer `README.md` en anglais, pour le public GitHub, avec un paragraphe
   d'introduction en français. Contenu :
   - ce que fait l'appli et sa licence GPL-3.0 ;

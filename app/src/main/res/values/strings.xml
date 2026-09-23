@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">OpenQuestTuner</string>
+    <string name="experimental">Experimental</string>
+    <string name="back">Back</string>
+    <string name="state_disconnected">Disconnected</string>
+    <string name="state_pairing">Pairing…</string>
+    <string name="state_connecting">Connecting…</string>
+    <string name="state_connected_wireless">Connected (wireless)</string>
+    <string name="state_connected_pc">Connected (via PC)</string>
+    <string name="state_failed">Failed</string>
+    <string name="failure_port_closed">Connection refused: turn on wireless debugging, or run adb tcpip 5555 again from the PC.</string>
+    <string name="failure_not_authorized">Not authorized: accept the “Allow debugging” prompt in the headset, then try again.</string>
+    <string name="failure_pairing_required">Pairing required: pair the app with a code.</string>
+    <string name="failure_pairing_code_rejected">Code rejected or expired: request a new code and try again.</string>
+    <string name="failure_service_not_found">Wireless debugging not found: turn it back on in the developer options. No need to pair again.</string>
+    <string name="failure_unknown">Unexpected failure: try again. If it persists, turn wireless debugging off and on again.</string>
+    <string name="connection_title">Connection &amp; tools</string>
+    <string name="connection_status_title">Status</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="wireless_title">Without a PC (recommended)</string>
+    <string name="wireless_step_1">Open the developer options and turn on “Wireless debugging”.</string>
+    <string name="wireless_step_2">Accept “Always allow on this network”.</string>
+    <string name="wireless_step_3">Tap “Pair device with pairing code”, keep that panel next to this one, then enter the port and code below.</string>
+    <string name="open_dev_options">Open developer options</string>
+    <string name="open_dev_options_failed">Couldn\'t open them automatically: go through the headset settings (Settings → System → Developer) or the Android developer options.</string>
+    <string name="pairing_port">Pairing port</string>
+    <string name="pairing_code">Pairing code</string>
+    <string name="pair">Pair</string>
+    <string name="error_code_digits">6 digits</string>
+    <string name="error_port_range">Port from 1 to 65535</string>
+    <string name="connection_port_optional">Connection port (optional)</string>
+    <string name="connection_port_hint">Leave empty to find it automatically.</string>
+    <string name="connect">Connect</string>
+    <string name="pc_title">With a PC</string>
+    <string name="pc_step_1">Plug the headset into a computer with ADB and run:</string>
+    <string name="pc_step_2">Unplug the cable, tap “Connect (via PC)”, then accept the debugging prompt in the headset (“Always allow”).</string>
+    <string name="pc_note">To be done again after each headset restart.</string>
+    <string name="connect_pc">Connect (via PC)</string>
+</resources>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Silhouette de casque VR surmontée d'un curseur de réglage. Zone sûre : cercle de 66dp centré. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Glissière et bouton du curseur -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M34,33h40a2,2 0,0 1,2 2v0a2,2 0,0 1,-2 2h-40a2,2 0,0 1,-2 -2v0a2,2 0,0 1,2 -2z" />
+    <path
+        android:fillColor="#FF7FD4FF"
+        android:pathData="M62,35m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+    <!-- Corps du casque, avec l'échancrure du nez -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M36,46h36a10,10 0,0 1,10 10v10a10,10 0,0 1,-10 10h-8l-6,-8h-8l-6,8h-8a10,10 0,0 1,-10 -10v-10a10,10 0,0 1,10 -10z" />
+    <!-- Deux lentilles -->
+    <path
+        android:fillColor="#FF0B3D5C"
+        android:pathData="M42,61m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+    <path
+        android:fillColor="#FF0B3D5C"
+        android:pathData="M66,61m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+</vector>

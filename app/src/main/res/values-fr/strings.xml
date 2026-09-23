@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="experimental">Expérimental</string>
+    <string name="back">Retour</string>
+    <string name="state_disconnected">Déconnecté</string>
+    <string name="state_pairing">Appairage…</string>
+    <string name="state_connecting">Connexion…</string>
+    <string name="state_connected_wireless">Connecté (sans fil)</string>
+    <string name="state_connected_pc">Connecté (via PC)</string>
+    <string name="state_failed">Échec</string>
+    <string name="failure_port_closed">Connexion refusée : active le débogage sans fil, ou relance adb tcpip 5555 depuis le PC.</string>
+    <string name="failure_not_authorized">Autorisation non accordée : accepte l\'invite « Autoriser le débogage » dans le casque, puis réessaie.</string>
+    <string name="failure_pairing_required">Appairage nécessaire : associe l\'appli avec un code.</string>
+    <string name="failure_pairing_code_rejected">Code refusé ou expiré : demande un nouveau code et réessaie.</string>
+    <string name="failure_service_not_found">Débogage sans fil introuvable : réactive-le dans les options développeur. Inutile de réappairer.</string>
+    <string name="failure_unknown">Échec inattendu : réessaie. Si ça persiste, désactive puis réactive le débogage sans fil.</string>
+    <string name="connection_title">Connexion et outils</string>
+    <string name="connection_status_title">État</string>
+    <string name="disconnect">Se déconnecter</string>
+    <string name="wireless_title">Sans PC (recommandé)</string>
+    <string name="wireless_step_1">Ouvre les options développeur et active « Débogage sans fil ».</string>
+    <string name="wireless_step_2">Accepte « Toujours autoriser sur ce réseau ».</string>
+    <string name="wireless_step_3">Touche « Associer l\'appareil avec un code », garde ce panneau à côté de celui-ci, puis saisis le port et le code ci-dessous.</string>
+    <string name="open_dev_options">Ouvrir les options développeur</string>
+    <string name="open_dev_options_failed">Ouverture automatique impossible : passe par les paramètres du casque (Paramètres → Système → Développeur) ou par les options développeur d\'Android.</string>
+    <string name="pairing_port">Port d\'appairage</string>
+    <string name="pairing_code">Code d\'appairage</string>
+    <string name="pair">Associer</string>
+    <string name="error_code_digits">6 chiffres</string>
+    <string name="error_port_range">Port de 1 à 65535</string>
+    <string name="connection_port_optional">Port de connexion (facultatif)</string>
+    <string name="connection_port_hint">Laisse vide pour le trouver automatiquement.</string>
+    <string name="connect">Se connecter</string>
+    <string name="pc_title">Avec un PC</string>
+    <string name="pc_step_1">Branche le casque à un ordinateur équipé d\'ADB et lance :</string>
+    <string name="pc_step_2">Débranche le câble, touche « Se connecter (via PC) », puis accepte l\'invite de débogage dans le casque (« Toujours autoriser »).</string>
+    <string name="pc_note">À refaire après chaque redémarrage du casque.</string>
+    <string name="connect_pc">Se connecter (via PC)</string>
+</resources>
