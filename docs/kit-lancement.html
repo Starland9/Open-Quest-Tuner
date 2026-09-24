@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kit de lancement OpenQuestTuner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    color-scheme: light;
+    --bg: #f2f5f7;
+    --surface: #ffffff;
+    --surface-2: #e8eef2;
+    --ink: #10202b;
+    --muted: #536877;
+    --line: #d3dde4;
+    --accent: #0a6f9c;
+    --accent-soft: #dbeff8;
+    --warn: #a15300;
+    --warn-soft: #fbead6;
+    --ok: #1d7a4a;
+    --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+    --body: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0c1318;
+      --surface: #141f27;
+      --surface-2: #1b2933;
+      --ink: #e2edf3;
+      --muted: #93a8b6;
+      --line: #273844;
+      --accent: #7fd4ff;
+      --accent-soft: #15323f;
+      --warn: #f0a55a;
+      --warn-soft: #3a2710;
+      --ok: #6dd58c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0c1318;
+    --surface: #141f27;
+    --surface-2: #1b2933;
+    --ink: #e2edf3;
+    --muted: #93a8b6;
+    --line: #273844;
+    --accent: #7fd4ff;
+    --accent-soft: #15323f;
+    --warn: #f0a55a;
+    --warn-soft: #3a2710;
+    --ok: #6dd58c;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    padding-inline: 16px;
+    padding-block: 32px 64px;
+  }
+  .wrap { max-width: 980px; margin-inline: auto; display: grid; gap: 48px; }
+
+  header { display: grid; gap: 14px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.05; text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(40px, 7vw, 64px); letter-spacing: 0.005em; }
+  h2 { font-size: 30px; letter-spacing: 0.01em; }
+  h3 { font-size: 21px; font-weight: 600; letter-spacing: 0.01em; }
+  p { margin: 0; max-width: 68ch; }
+  .lede { font-size: 17px; color: var(--muted); max-width: 62ch; }
+
+  .facts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fact {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .fact b { color: var(--accent); font-weight: 500; }
+  .fact.warn { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+
+  nav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; }
+  nav a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+  nav a:hover, nav a:focus-visible { border-bottom-color: currentColor; outline: none; }
+
+  section { display: grid; gap: 18px; }
+  .section-head { display: grid; gap: 6px; }
+  .section-head p { color: var(--muted); }
+
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 10px; }
+  ol.steps li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.1;
+  }
+  ol.steps li.must { border-color: var(--warn); }
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 1px 7px;
+    border-radius: 5px;
+    background: var(--warn-soft);
+    color: var(--warn);
+    margin-left: 6px;
+    vertical-align: 1px;
+  }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  thead th {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  tr.group td {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding-block: 6px;
+  }
+  td.when { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; color: var(--muted); }
+  td.place b { display: block; }
+  td.place span { color: var(--muted); font-size: 13px; }
+  .lang { font-family: var(--mono); font-size: 12px; }
+  td a { color: var(--accent); }
+
+  .cards { display: grid; gap: 16px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: grid;
+    gap: 10px;
+    scroll-margin-top: 16px;
+  }
+  .card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+  .card-head .meta { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .card-head h3 .letter { color: var(--accent); margin-right: 6px; }
+  .use { font-size: 13.5px; color: var(--muted); }
+  .block { display: grid; gap: 6px; }
+  .block-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .block-label span { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  pre.text {
+    margin: 0;
+    font-family: var(--body);
+    font-size: 14.5px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 12px 14px;
+    max-height: 520px;
+    overflow-y: auto;
+  }
+  pre.text.mono { font-family: var(--mono); font-size: 13px; }
+  button.copy {
+    font: 500 12.5px var(--body);
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 5px 10px;
+    min-height: 32px;
+    cursor: pointer;
+  }
+  button.copy:hover { background: var(--accent-soft); }
+  button.copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.copy.done { color: var(--ok); border-color: var(--ok); }
+  .count { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .count.over { color: var(--warn); }
+
+  ul.avoid { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  ul.avoid li {
+    padding: 10px 14px;
+    border-left: 3px solid var(--warn);
+    background: var(--surface);
+    border-radius: 0 8px 8px 0;
+  }
+  footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+  @media (max-width: 560px) {
+    h2 { font-size: 26px; }
+    ol.steps li { grid-template-columns: 26px 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">OpenQuestTuner · v0.1.0 · github.com/Starland9/Open-Quest-Tuner</div>
+    <h1>Kit de lancement</h1>
+    <p class="lede">Où parler de l'appli, dans quel ordre, et des textes prêts à copier, écrits pour chaque public. Tout ce qui y est affirmé a été mesuré sur ton Quest 3 ou vérifié dans le code.</p>
+    <div class="facts">
+      <span class="fact"><b>GPL-3.0</b> · dépôt public</span>
+      <span class="fact">testé sur <b>Quest 3</b> · Horizon OS build 207</span>
+      <span class="fact"><b>127</b> tests JVM</span>
+      <span class="fact">« Appliquer et lancer » en <b>~0,2 s</b></span>
+      <span class="fact">APK release <b>8,8 Mo</b></span>
+      <span class="fact warn">aucune release publiée · APK encore signé avec la clé de debug</span>
+    </div>
+    <nav aria-label="Sections">
+      <a href="#avant">Avant de poster</a>
+      <a href="#lieux">Où en parler</a>
+      <a href="#textes">Les textes</a>
+      <a href="#eviter">À éviter</a>
+    </nav>
+  </header>
+
+  <section id="avant">
+    <div class="section-head">
+      <h2>Avant de poster</h2>
+      <p>Les gens qui cliqueront voudront installer l'appli tout de suite. Dans cet ordre :</p>
+    </div>
+    <ol class="steps">
+      <li class="must"><div><b>Finir les validations dans le casque</b> (T069, T080, T086). <span class="tag">bloquant</span><br>Un bug trouvé par les premiers utilisateurs coûte plus cher qu'une semaine d'attente.</div></li>
+      <li class="must"><div><b>Créer une clé de publication et publier une release GitHub v0.1.0</b> avec l'APK signé par cette clé. <span class="tag">bloquant</span><br>Ne distribue jamais l'APK signé avec la clé de debug. Vérifie aussi, sur une installation neuve, la génération de clé et l'appairage, les deux chemins pas encore testés en release.</div></li>
+      <li><div><b>Remplir le « About » du dépôt</b> : description et topics (texte <a href="#t-github">I</a>).</div></li>
+      <li><div><b>Filmer 30 à 60 secondes dans le casque</b> : liste des jeux → profil → « Appliquer et lancer » → le jeu démarre, puis 3 captures d'écran. Une vidéo fait plus que n'importe quel texte sur Reddit.</div></li>
+      <li><div><b>Signaler le bug de libadb-android à son auteur</b> (issue GitHub avec l'analyse du réveil perdu), avant d'en parler publiquement. C'est plus correct, et ça fait un bon lien à citer.</div></li>
+      <li><div><b>Ouvrir un modèle d'issue « rapport de compatibilité »</b> pour les testeurs Quest 2, 3S et Pro (texte <a href="#t-testeurs">G</a>).</div></li>
+    </ol>
+  </section>
+
+  <section id="lieux">
+    <div class="section-head">
+      <h2>Où en parler</h2>
+      <p>Un lieu, un public, un angle. Poste à quelques jours d'intervalle plutôt que partout le même jour, et reste disponible pour répondre dans les premières heures.</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Quand</th><th>Lieu</th><th>Langue</th><th>Angle</th><th>Texte</th><th>Attention</th></tr>
+        </thead>
+        <tbody>
+          <tr class="group"><td colspan="6">Joueurs Quest et sideload</td></tr>
+          <tr>
+            <td class="when">J0</td>
+            <td class="place"><b>r/sidequest</b><span>public déjà habitué au sideload</span></td>
+            <td class="lang">EN</td>
+            <td>Appli libre à installer soi-même, profils par jeu</td>
+            <td><a href="#t-reddit">C</a></td>
+            <td>Lis les règles d'auto-promotion et choisis le bon flair.</td>
+          </tr>
+          <tr>
+            <td class="when">J0–J1</td>
+            <td class="place"><b>r/OculusQuest</b><span>la plus grande communauté Quest</span></td>
+            <td class="lang">EN</td>
+            <td>Réglages par jeu gratuits, avec la vidéo</td>
+            <td><a href="#t-reddit">C</a></td>
+            <td>Modération stricte sur l'auto-promotion : dis clairement que tu es le développeur.</td>
+          </tr>
+          <tr>
+            <td class="when">Après la release signée</td>
+            <td class="place"><b>SideQuest</b><span>fiche d'appli sur le store de sideload</span></td>
+            <td class="lang">EN</td>
+            <td>Canal de distribution naturel pour un APK Quest</td>
+            <td><a href="#t-reddit">C</a> (corps)</td>
+            <td>Exige un APK signé avec ta clé de publication.</td>
+          </tr>
+          <tr>
+            <td class="when">Plus tard</td>
+            <td class="place"><b>r/virtualreality</b><span>VR en général, tous casques</span></td>
+            <td class="lang">EN</td>
+            <td>Mesures VrApi, projet libre</td>
+            <td><a href="#t-reddit">C</a></td>
+            <td>Public plus large et moins Quest : mets la vidéo en avant.</td>
+          </tr>
+
+          <tr class="group"><td colspan="6">Développeurs et logiciel libre</td></tr>
+          <tr>
+            <td class="when">J1</td>
+            <td class="place"><b>Hacker News</b><span>« Show HN »</span></td>
+            <td class="lang">EN</td>
+            <td>Une appli qui parle ADB à son propre casque, et le bug de concurrence trouvé en route</td>
+            <td><a href="#t-hn">D</a></td>
+            <td>En semaine, le matin heure US. Poste le premier commentaire aussitôt, puis réponds pendant 2 ou 3 heures.</td>
+          </tr>
+          <tr>
+            <td class="when">J1</td>
+            <td class="place"><b>LinuxFr.org</b><span>journal (rapide) ou dépêche (modérée)</span></td>
+            <td class="lang">FR</td>
+            <td>Logiciel libre, garde-fous, clean-room</td>
+            <td><a href="#t-linuxfr">E</a></td>
+            <td>Commence par un journal. Une dépêche plus complète peut suivre à la v0.2.</td>
+          </tr>
+          <tr>
+            <td class="when">J2</td>
+            <td class="place"><b>Journal du Hacker</b><span>agrégateur de liens tech francophone</span></td>
+            <td class="lang">FR</td>
+            <td>Lien vers le journal LinuxFr ou vers le dépôt</td>
+            <td><a href="#t-oneliner">B</a></td>
+            <td>Un seul lien, sans texte promotionnel.</td>
+          </tr>
+          <tr>
+            <td class="when">Plus tard</td>
+            <td class="place"><b>r/androiddev</b><span>développeurs Android</span></td>
+            <td class="lang">EN</td>
+            <td>Récit technique : le réveil perdu dans libadb et son contournement</td>
+            <td><a href="#t-hn">D</a> (adapté)</td>
+            <td>Pas d'annonce produit : seulement avec un vrai article technique.</td>
+          </tr>
+
+          <tr class="group"><td colspan="6">Réseaux et relais</td></tr>
+          <tr>
+            <td class="when">J2</td>
+            <td class="place"><b>Mastodon, Bluesky</b><span>#MetaQuest #LogicielLibre #OpenSource</span></td>
+            <td class="lang">FR · EN</td>
+            <td>Annonce courte avec la vidéo</td>
+            <td><a href="#t-social">F</a></td>
+            <td>Un message par langue, pas de mélange.</td>
+          </tr>
+          <tr>
+            <td class="when">Continu</td>
+            <td class="place"><b>Créateurs VR sur YouTube</b><span>ceux qui couvrent le sideload et les réglages</span></td>
+            <td class="lang">EN</td>
+            <td>Alternative libre et mesurée, démo disponible</td>
+            <td><a href="#t-createurs">H</a></td>
+            <td>Un message personnalisé à chacun, jamais un envoi groupé.</td>
+          </tr>
+          <tr>
+            <td class="when">Continu</td>
+            <td class="place"><b>Discussions et issues GitHub</b><span>là où arrivent les testeurs</span></td>
+            <td class="lang">EN</td>
+            <td>Appel aux possesseurs de Quest 2, 3S et Pro</td>
+            <td><a href="#t-testeurs">G</a></td>
+            <td>Remercie et crédite chaque rapport dans le tableau de compatibilité.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="textes">
+    <div class="section-head">
+      <h2>Les textes</h2>
+      <p>Écrits à la première personne, pour que tu les postes tel quels. Remplace le lien du dépôt par celui de la release quand elle existe.</p>
+    </div>
+    <div class="cards">
+
+      <article class="card" id="t-oral">
+        <div class="card-head"><h3><span class="letter">A</span>Pitch oral, 30 secondes</h3><span class="meta">FR · à dire, pas à lire</span></div>
+        <p class="use">Pour présenter l'appli de vive voix, en vidéo ou en début de démo.</p>
+        <div class="block">
+          <div class="block-label"><span>Texte</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">OpenQuestTuner, c'est une appli gratuite et open source pour le Meta Quest. Tu choisis, jeu par jeu, la fréquence d'affichage, la résolution, les niveaux CPU et GPU et le rendu fovéal. Puis tu touches « Appliquer et lancer » : le jeu démarre avec ces réglages, en une fraction de seconde.
+
+Tout se passe dans le casque, sans PC après la première configuration, sans compte, et rien ne part sur Internet. C'est une alternative libre à Quest Games Optimizer. Elle est testée sur Quest 3, et je cherche des testeurs Quest 2, 3S et Pro.</pre>
+        </div>
+      </article>
+
+      <article class="card" id="t-oneliner">
+        <div class="card-head"><h3><span class="letter">B</span>Phrases d'accroche</h3><span class="meta">FR · EN</span></div>
+        <p class="use">Titre de lien, bio, légende de vidéo, Journal du Hacker.</p>
+        <div class="block">
+          <div class="block-label"><span>Français</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">OpenQuestTuner : des profils de performance par jeu pour Meta Quest, libres et gratuits, appliqués en un geste depuis le casque.</pre>
+        </div>
+        <div class="block">
+          <div class="block-label"><span>English</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">OpenQuestTuner: free, open-source per-game performance profiles for Meta Quest, applied in one tap from inside the headset.</pre>
+        </div>
+      </article>
+
+      <article class="card" id="t-reddit">
+        <div class="card-head"><h3><span class="letter">C</span>Post Reddit</h3><span class="meta">EN · r/sidequest, r/OculusQuest, r/virtualreality</span></div>
+        <p class="use">Joins la vidéo au post. Le premier titre convient à r/OculusQuest, le second à r/sidequest.</p>
+        <div class="block">
+          <div class="block-label"><span>Titre, r/OculusQuest</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">I made OpenQuestTuner, a free and open-source per-game tuner for Quest (refresh rate, resolution, CPU/GPU, foveation)</pre>
+        </div>
+        <div class="block">
+          <div class="block-label"><span>Titre, r/sidequest</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">OpenQuestTuner: open-source app to set per-game refresh rate, render resolution and CPU/GPU levels on Quest (GPL-3.0)</pre>
+        </div>
+        <div class="block">
+          <div class="block-label"><span>Corps du post</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">Hi! I built a free, open-source (GPL-3.0) alternative to per-game tuners like Quest Games Optimizer.
+
+**What it does**
+- Per-game profiles: refresh rate (72–120 Hz), render resolution (×0.7 to ×1.5), CPU/GPU levels, fixed and dynamic foveated rendering. Every setting can stay on "Game default".
+- "Apply and launch": stops the game, applies the settings and launches it, in about 0.2 s.
+- "Reset all" puts the headset back to its defaults in one tap.
+- It shows the headset's thermal state and warns you when it gets hot.
+
+**How it works**
+The app writes the headset's `debug.oculus.*` properties through an ADB client built into the app. You need a PC once (`adb tcpip 5555`, then accept the prompt). After that, the app switches to wireless debugging and reconnects by itself: no pairing code, no PC.
+
+**Honest status**
+- Tested on my Quest 3 (Horizon OS build 207). I checked the effect with Meta's VrApi stats in Beat Saber: 120 Hz, 1.5× render scale, CPU/GPU levels and foveation were all applied.
+- Quest 2, 3S and Pro use values from Meta's docs and are marked *Experimental*. If you own one, I'd love a compatibility report.
+- These are undocumented debug properties, so a Horizon OS update can break them. Settings apply to the whole headset until you reset or reboot (a reboot always clears them). Higher settings mean more heat and less battery.
+
+No account, no analytics, nothing leaves the headset. Not affiliated with QGO or Meta.
+
+Source, APK and docs: https://github.com/Starland9/Open-Quest-Tuner
+
+Feedback and bug reports welcome!</pre>
+        </div>
+      </article>
+
+      <article class="card" id="t-hn">
+        <div class="card-head"><h3><span class="letter">D</span>Show HN</h3><span class="meta">EN · titre ≤ 80 caractères</span></div>
+        <p class="use">L'angle technique. Poste le commentaire tout de suite après la soumission. Pour r/androiddev, développe le 4ᵉ point en article.</p>
+        <div class="block">
+          <div class="block-label"><span>Titre</span><span class="count" data-limit="80"></span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">Show HN: OpenQuestTuner – per-game Meta Quest tuning via an embedded ADB client</pre>
+        </div>
+        <div class="block">
+          <div class="block-label"><span>Premier commentaire</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">Hi HN, I made an Android app that runs on a Meta Quest and tunes the headset itself: refresh rate, eye-buffer resolution, CPU/GPU levels and foveation. Settings are saved per game and applied right before the game launches.
+
+The interesting part is that the app talks ADB to its own headset. It embeds libadb-android (with Conscrypt for TLS) and connects to adbd on 127.0.0.1. A few things I learned:
+
+- Horizon OS hides Android's wireless-debugging pairing screen. But a key authorized once over `adb tcpip 5555` is then accepted on the TLS wireless-debugging port without any pairing code, so after one PC session the app is self-sufficient.
+
+- There is no free-form shell. Every command comes from a closed list of factory functions with validated arguments (7 whitelisted properties, package names checked by regex), and nothing the app writes survives a reboot.
+
+- I hit intermittent 15-second hangs and traced them to lost wakeups in libadb: open() sends OPEN and only then enters a bare wait(), so a fast OKAY is missed. read() has the same kind of race when the stream closes. Workaround: stop reading at an exit-code marker, and retry the (idempotent) commands with short timeouts.
+
+- The core (commands, profiles, connection policy) is plain Kotlin with 127 JVM tests. Effects were verified on a Quest 3 with Meta's VrApi logcat stats.
+
+GPL-3.0, no network traffic besides the local ADB socket. Tested on Quest 3 only so far; other headsets are marked experimental.
+
+https://github.com/Starland9/Open-Quest-Tuner</pre>
+        </div>
+      </article>
+
+      <article class="card" id="t-linuxfr">
+        <div class="card-head"><h3><span class="letter">E</span>Journal LinuxFr.org</h3><span class="meta">FR</span></div>
+        <p class="use">Le public libriste francophone : insiste sur les garde-fous, la vie privée et la démarche clean-room.</p>
+        <div class="block">
+          <div class="block-label"><span>Titre</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">OpenQuestTuner : une appli libre pour régler ses jeux Meta Quest, qui parle ADB à son propre casque</pre>
+        </div>
+        <div class="block">
+          <div class="block-label"><span>Corps</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">Cher 'Nal,
+
+Je publie OpenQuestTuner, une appli Android libre (GPL-3.0) qui tourne sur un casque Meta Quest et règle… le casque lui-même : fréquence d'affichage, résolution de rendu par œil, niveaux CPU/GPU, rendu fovéal fixe et dynamique. Les réglages sont enregistrés par jeu et appliqués juste avant de le lancer, en un geste.
+
+Comment ça marche : l'appli embarque un client ADB (libadb-android, avec Conscrypt pour le TLS). Elle se connecte à l'adbd de son propre casque sur 127.0.0.1, puis écrit des propriétés système `debug.oculus.*`. Horizon OS masque l'écran d'appairage du débogage sans fil, mais une clé autorisée une seule fois via `adb tcpip 5555` est ensuite acceptée en TLS sans code. Après une session avec un PC, tout se fait donc dans le casque.
+
+Les garde-fous :
+- pas de shell libre : une liste fermée de commandes, construites par des fonctions qui valident leurs arguments ;
+- rien qui survive à un redémarrage ;
+- pas de compte, pas de télémétrie, aucun trafic hors de la connexion locale.
+
+Le cœur est en Kotlin pur, couvert par 127 tests JVM. Chaque réglage marqué « vérifié » a été mesuré sur un Quest 3 avec les statistiques VrApi de Meta.
+
+En route, j'ai trouvé un réveil perdu dans libadb-android : open() envoie sa demande avant de se mettre en attente, sans condition, et bloquait des commandes par intermittence. Je l'ai contourné en attendant un correctif en amont.
+
+Les limites :
+- les propriétés ne sont pas documentées : une mise à jour d'Horizon OS peut tout casser ;
+- les réglages s'appliquent à tout le casque, jusqu'à une réinitialisation ou un redémarrage ;
+- l'appli n'est testée que sur Quest 3. Les possesseurs de Quest 2, 3S ou Pro sont les bienvenus pour compléter le tableau de compatibilité.
+
+Code, APK et documentation (spec, plan, recherche, rédigés avec Spec Kit) : https://github.com/Starland9/Open-Quest-Tuner</pre>
+        </div>
+      </article>
+
+      <article class="card" id="t-social">
+        <div class="card-head"><h3><span class="letter">F</span>Posts courts</h3><span class="meta">FR · EN · ≤ 300 caractères (Bluesky)</span></div>
+        <p class="use">Mastodon, Bluesky, X. Joins la vidéo, c'est elle qui fait cliquer.</p>
+        <div class="block">
+          <div class="block-label"><span>Français</span><span class="count" data-limit="300"></span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">J'ai créé OpenQuestTuner, une appli libre (GPL-3.0) pour Meta Quest : fréquence, résolution, CPU/GPU et rendu fovéal réglés jeu par jeu, appliqués en un geste depuis le casque. Testée sur Quest 3, testeurs Quest 2/3S/Pro bienvenus → github.com/Starland9/Open-Quest-Tuner #MetaQuest #LogicielLibre</pre>
+        </div>
+        <div class="block">
+          <div class="block-label"><span>English</span><span class="count" data-limit="300"></span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">I built OpenQuestTuner, a free and open-source (GPL-3.0) app for Meta Quest: per-game refresh rate, resolution, CPU/GPU and foveation, applied in one tap from inside the headset. Tested on Quest 3; Quest 2/3S/Pro testers welcome → github.com/Starland9/Open-Quest-Tuner #MetaQuest #OpenSource</pre>
+        </div>
+      </article>
+
+      <article class="card" id="t-testeurs">
+        <div class="card-head"><h3><span class="letter">G</span>Appel à testeurs</h3><span class="meta">EN · GitHub, commentaires Reddit</span></div>
+        <p class="use">À épingler dans les Discussions GitHub et à reprendre en réponse sous tes posts.</p>
+        <div class="block">
+          <div class="block-label"><span>Texte</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">Looking for Quest 2, 3S and Pro testers!
+
+OpenQuestTuner marks every setting as Experimental until someone has measured its effect on that headset. If you have 15 minutes:
+
+1. Apply a profile to any game (for example 90 Hz, ×1.2, CPU 3, GPU 3, foveation Medium).
+2. While the game runs, send the line from `adb logcat -s VrApi` that starts with FPS= (it shows the refresh rate, render scale SF, CPU/GPU levels and Fov).
+3. Tell me your headset model and Horizon OS version.
+
+I'll add your results to the compatibility table and switch the settings to Verified for your model, with credit.</pre>
+        </div>
+      </article>
+
+      <article class="card" id="t-createurs">
+        <div class="card-head"><h3><span class="letter">H</span>Message à un créateur VR</h3><span class="meta">EN · e-mail ou message privé</span></div>
+        <p class="use">Personnalise la première phrase avec une vidéo précise de la personne.</p>
+        <div class="block">
+          <div class="block-label"><span>Texte</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">Hi [name],
+
+I enjoyed your video on [topic]. I'm the developer of OpenQuestTuner, a free, open-source (GPL-3.0) app that sets per-game refresh rate, render resolution, CPU/GPU levels and foveation on Meta Quest, applied in one tap from inside the headset. It has no account and no telemetry, and its effects are measured on a Quest 3 with Meta's VrApi stats.
+
+If it could interest your audience, I'd be happy to send a short demo video or answer any questions.
+
+https://github.com/Starland9/Open-Quest-Tuner
+
+Thanks for your time,
+[your name]</pre>
+        </div>
+      </article>
+
+      <article class="card" id="t-github">
+        <div class="card-head"><h3><span class="letter">I</span>« About » du dépôt GitHub</h3><span class="meta">EN · ≤ 350 caractères</span></div>
+        <p class="use">Réglages du dépôt → About. La description apparaît aussi dans les résultats de recherche.</p>
+        <div class="block">
+          <div class="block-label"><span>Description</span><span class="count" data-limit="350"></span><button class="copy" type="button">Copier</button></div>
+          <pre class="text">Free, open-source per-game performance profiles for Meta Quest (refresh rate, render resolution, CPU/GPU levels, foveation), applied from inside the headset through an embedded ADB client.</pre>
+        </div>
+        <div class="block">
+          <div class="block-label"><span>Topics</span><button class="copy" type="button">Copier</button></div>
+          <pre class="text mono">meta-quest oculus-quest quest3 virtual-reality adb android kotlin jetpack-compose sideload performance</pre>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section id="eviter">
+    <div class="section-head">
+      <h2>À éviter</h2>
+      <p>Ce qui fait perdre la confiance d'une communauté, souvent dès le premier post.</p>
+    </div>
+    <ul class="avoid">
+      <li><b>Promettre un gain partout.</b> Certains jeux ignorent ces réglages. Parle de ce que tu as mesuré sur Beat Saber, pas d'un « +30 % de netteté » en général.</li>
+      <li><b>Dénigrer Quest Games Optimizer</b>, ou poster dans ses espaces (Discord, page itch.io). Présente l'appli comme une alternative libre, et répète qu'il n'y a aucun lien avec QGO.</li>
+      <li><b>Distribuer l'APK signé avec la clé de debug.</b> Passer ensuite à la clé de publication obligerait tous tes utilisateurs à désinstaller l'appli.</li>
+      <li><b>Taire les limites</b> : propriétés non documentées, réglages globaux au casque, chaleur, PC nécessaire une fois. Les annoncer d'emblée désamorce la plupart des critiques.</li>
+      <li><b>Poster le même texte partout le même jour.</b> C'est vu comme du spam. Espace les posts et adapte l'angle à chaque public.</li>
+      <li><b>Les communautés de piratage.</b> Elles sont souvent proches du sideload, mais l'appli n'a rien à y faire et ça abîmerait son image.</li>
+    </ul>
+  </section>
+
+  <footer>Chiffres issus des essais du 2026-09-23 sur Quest 3 (docs/compatibility.md) et de la version 0.1.0 du code. Vérifie les règles de chaque communauté au moment de poster : elles changent.</footer>
+</div>
+
+<script>
+  (function () {
+    function textOf(button) {
+      var block = button.closest('.block');
+      var pre = block && block.querySelector('pre.text');
+      return pre ? pre.textContent : '';
+    }
+    function selectPre(button) {
+      var pre = button.closest('.block').querySelector('pre.text');
+      var range = document.createRange();
+      range.selectNodeContents(pre);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    function flash(button, label) {
+      button.textContent = label;
+      button.classList.add('done');
+      setTimeout(function () { button.textContent = 'Copier'; button.classList.remove('done'); }, 1800);
+    }
+    document.querySelectorAll('button.copy').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var text = textOf(button);
+        try {
+          navigator.clipboard.writeText(text).then(
+            function () { flash(button, 'Copié'); },
+            function () { selectPre(button); flash(button, 'Sélectionné : Ctrl+C'); }
+          );
+        } catch (e) {
+          selectPre(button);
+          flash(button, 'Sélectionné : Ctrl+C');
+        }
+      });
+    });
+    document.querySelectorAll('.count').forEach(function (count) {
+      var pre = count.closest('.block').querySelector('pre.text');
+      var n = Array.from(pre.textContent).length;
+      var limit = parseInt(count.getAttribute('data-limit'), 10);
+      count.textContent = n + ' / ' + limit;
+      if (n > limit) count.classList.add('over');
+    });
+  })();
+</script>
+</body>
+</html>

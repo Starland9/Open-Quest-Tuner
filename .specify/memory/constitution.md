@@ -1,3 +1,25 @@
+<!--
+Sync Impact Report
+- Version : 1.0.0 → 1.1.0 (MINOR : principe I élargi)
+- Principe modifié : I. Sécurité du casque d'abord (NON NÉGOCIABLE), titre inchangé
+  - la règle de réversibilité est précisée pour les réglages de performance (`debug.oculus.*`) ;
+  - nouvelle règle : un changement durable de l'accès au débogage n'est permis qu'avec un choix
+    explicite, un retour en arrière en un geste, et la valeur d'origine retenue ;
+  - justification complétée.
+- Sections ajoutées : aucune
+- Sections supprimées : aucune
+- Modèles (.specify/templates) : aucun à modifier. plan-template, spec-template et tasks-template
+  lisent la constitution sans en recopier le texte.
+- Suivi :
+  - specs/002-standalone-reconnect/plan.md : dans Complexity Tracking, les deux « écarts »
+    deviennent conformes au principe I v1.1.0, et la proposition d'amendement est à retirer ;
+  - specs/001-game-profiles-mvp/spec.md, FR-026 : sa note d'exception peut citer le principe I
+    v1.1.0 ;
+  - specs/002-standalone-reconnect (data-model, contrat C10) : si la permission était déjà
+    accordée avant l'activation, l'appli ne doit pas la retirer à la désactivation (condition 3,
+    « ne rétablir que ce qu'elle a changé »).
+- Aucun TODO différé.
+-->
 # Constitution d'OpenQuestTuner
 
 OpenQuestTuner est une application Android 2D open source pour casques Meta Quest, alternative
@@ -17,13 +39,27 @@ un client ADB embarqué dans l'appli.
   console shell libre.
 - La clé privée ADB DOIT rester dans le stockage privé de l'appli : elle n'est jamais exportée,
   journalisée ni transmise.
-- Tout réglage DOIT être réversible. Une action en un geste remet toutes les propriétés gérées à
-  leur valeur par défaut, et l'appli n'écrit aucune propriété persistante (`persist.*`), pour qu'un
-  redémarrage du casque efface tout.
+- Tout réglage de performance (propriétés `debug.oculus.*`) DOIT être réversible. Une action en un
+  geste remet toutes les propriétés gérées à leur valeur par défaut, et un redémarrage du casque
+  les efface toutes. L'appli n'écrit jamais de propriété persistante (`persist.*`).
+- Un changement durable de l'accès au débogage, qui survit au redémarrage du casque, NE DOIT être
+  fait qu'à trois conditions. Exemples : une permission que l'appli s'accorde à elle-même, ou le
+  délai d'expiration des autorisations de débogage.
+  1. L'utilisateur l'a choisi explicitement, après une explication de ses conséquences. Rien
+     n'est coché ni activé d'office. L'explication dit aussi ce qui resterait en place si l'appli
+     était désinstallée.
+  2. Un seul geste dans l'appli le défait.
+  3. L'appli retient la valeur d'origine et la rétablit à ce geste. Elle ne rétablit que ce
+     qu'elle a elle-même changé.
+
+  Ces changements forment une liste fermée, fixée par le contrat des commandes de la
+  fonctionnalité qui les introduit, avec des cibles et des valeurs constantes ou validées.
 
 Justification : un accès shell ADB permet de dégrader ou de bloquer un casque. La confiance des
 utilisateurs repose sur la garantie qu'aucune entrée ne peut détourner ce shell et qu'aucun
-réglage n'est irréversible.
+réglage n'est irréversible. Certains usages exigent pourtant qu'un accès survive au redémarrage :
+se reconnecter sans PC, par exemple. Il reste alors sous le contrôle de l'utilisateur, qui
+choisit, voit ce qui change et peut revenir en arrière.
 
 ### II. Libre, clean-room et respectueux de la vie privée
 
@@ -111,4 +147,4 @@ dépendance superflue ralentit un projet maintenu par peu de personnes.
 - Conformité : chaque plan (Constitution Check) et chaque revue de pull request vérifient le
   respect des principes.
 
-**Version** : 1.0.0 | **Ratifiée** : 2026-09-23 | **Dernier amendement** : 2026-09-23
+**Version** : 1.1.0 | **Ratifiée** : 2026-09-23 | **Dernier amendement** : 2026-09-24
