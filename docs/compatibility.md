@@ -17,7 +17,7 @@ Légende :
 
 | Propriété | Quest 3 | Quest 3S | Quest 2 | Quest Pro | Source de la plage |
 |---|---|---|---|---|---|
-| `debug.oculus.refreshRate` | ✅ | — | — | — | doc Meta, fréquences (research R2) |
+| `debug.oculus.refreshRate` | ✅ | — | — | — | doc Meta, fréquences (research R2) ; 144–200 Hz : spec 003, marquées expérimentales (FR-003) |
 | `debug.oculus.textureWidth` / `textureHeight` | ✅ | — | — | — | doc Meta, render scale (R2) |
 | `debug.oculus.cpuLevel` | ✅ | — | — | — | doc Meta, niveaux CPU/GPU (R2) |
 | `debug.oculus.gpuLevel` | ✅ | — | — | — | doc Meta, niveaux CPU/GPU (R2) |
@@ -72,6 +72,8 @@ Une ligne par essai. Pour les versions récentes, noter la version d'Horizon OS 
 | 2026-09-24 | Quest 3 | vros 207 | — | Appli arrêtée (`am force-stop`) puis rouverte, sans redémarrage | Sans-fil déjà actif : préparation « Ready » immédiate, sans écriture, connecté en 0,2 s. | logcat `OqtAdb` | ✅ quickstart 1.4 |
 | 2026-09-24 | Quest 3 | vros 207 | — | Redémarrage sans ouvrir l'appli, option active | Aucun port ADB ouvert environ 2 min après le démarrage : rien n'est réactivé tant que l'appli n'est pas ouverte. | nmap | ✅ quickstart 1.8 (FR-008) |
 | 2026-09-24 | Quest 3 | vros 207 | — | Réglages globaux et sécurisés avant / après deux redémarrages avec reconnexion autonome | Seule différence : `boot_count`. `adb_allowed_connection_time=0` y figure depuis longtemps : `dumpsys settings` l'attribue à SideQuest (`pkg:quest.side.vr`), ce n'est donc pas une valeur d'usine. | `settings list`, `dumpsys settings` | ✅ quickstart §4 (SC-007) |
+| 2026-09-24 | Quest 3 | vros 207 | — | Spec 003, choix de la fréquence dans un profil (APK debug) | L'appli propose 72 à 120 Hz, puis 144, 160, 180 et 200 Hz, chacune avec la pastille « Expérimental », et rien au-delà : les modes de l'écran 0 sont bien lus depuis l'appli par `DisplayManager` (research.md R1). | `uiautomator dump` | ✅ quickstart 1.1 (FR-001, FR-003) |
+| 2026-09-24 | Quest 3 | vros 207 | Beat Saber (profil) | Spec 003, profil à 120 Hz et ×1,5, puis choix de 200 Hz | Résolution passée à ×0,8, message « Résolution abaissée à ×0,8 pour 200 Hz. » ; paliers ×0,9 à ×1,5 désactivés ; aide « À 200 Hz, la résolution est limitée à ×0,8. ». À 144 Hz et ×0,8 : avertissement de cadence, et rappel « Tout le casque, menu compris, reste à 144 Hz… ». Brouillon non enregistré. | `uiautomator dump` | ✅ quickstart 2.2 (FR-004 à FR-006, FR-009, SC-004) |
 
 ## Points à trancher lors des premiers essais
 

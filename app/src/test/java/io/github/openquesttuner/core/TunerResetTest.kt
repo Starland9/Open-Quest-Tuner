@@ -8,7 +8,8 @@ import org.junit.Test
 class TunerResetTest {
 
     private val shell = FakeShellBackend()
-    private val tuner = Tuner(shell, QuestModel.QUEST_3)
+    private val display = FakeDisplayRates()
+    private val tuner = Tuner(shell, QuestModel.QUEST_3, display)
 
     private val allResets = QuestProperty.entries.map { ShellCommand.resetProperty(it).text }
 

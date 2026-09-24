@@ -47,3 +47,8 @@
   - l'appli s'arrête à 200 Hz (amendement du 2026-09-24) : 207 Hz est retiré.
 - La table de FR-005 repose sur un seul jeu. Un essai avec ×0,8 et le GPU au niveau 5, à 180 et
   200 Hz, permettrait de la revoir avant `/speckit-plan`, ou pendant la validation sur casque.
+- `/speckit-analyze` du 2026-09-24 : les 7 points relevés ont été corrigés. F1 (FR-008 et
+  « Profil de jeu » : seules les fréquences au-delà de 120 Hz dépendent de l'écran), A1 (SC-006 :
+  délai compté depuis le changement réel de l'écran) et U1 (US3 scénario 1) portaient sur la
+  spec ; E1, C1, D1 et B1 sur le quickstart, le data-model, le contrat et les tâches. Tous les
+  points de la checklist passent toujours.

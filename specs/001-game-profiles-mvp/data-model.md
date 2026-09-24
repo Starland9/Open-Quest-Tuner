@@ -69,7 +69,7 @@ flottants : `RESOLUTION_STEPS = 70, 80, …, 150` (spec FR-011).
 
 | Champ | Type | `null` signifie | Validation à l'application (`validateFor(model)`) |
 |---|---|---|---|
-| `refreshRate` | Int? | Par défaut du jeu | ∈ `model.refreshRates` |
+| `refreshRate` | Int? | Par défaut du jeu | ∈ `model.refreshRates`, ou fréquence élevée déclarée par l'écran (voir [spec 003](../003-high-refresh-rates/data-model.md)) |
 | `eyeTexture` | EyeTexture? | Par défaut du jeu | dimensions dans [512, 3072] |
 | `cpuLevel` | Int? | Par défaut du jeu | ∈ `model.cpuLevels` |
 | `gpuLevel` | Int? | Par défaut du jeu | ∈ `model.gpuLevels` |

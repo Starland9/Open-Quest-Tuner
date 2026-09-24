@@ -49,6 +49,8 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
             val thermalLevel by vm.thermalLevel.collectAsState()
             val diagnostic by vm.diagnostic.collectAsState()
             val resetting by vm.resetting.collectAsState()
+            val refreshRates by vm.refreshRates.collectAsState()
+            val displayRefreshRate by vm.displayRefreshRate.collectAsState()
             val autoReconnectStatus by vm.autoReconnectStatus.collectAsState()
             val autoReconnectBusy by vm.autoReconnectBusy.collectAsState()
             val preparing by vm.autoReconnectPreparing.collectAsState()
@@ -95,6 +97,7 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                     thermalLevel = thermalLevel,
                     diagnostic = diagnostic,
                     onRefreshDiagnostic = vm::refreshDiagnostic,
+                    displayRefreshRate = displayRefreshRate,
                     autoReconnect = AutoReconnectUi(
                         status = autoReconnectStatus,
                         experimental = vm.autoReconnectExperimental,
@@ -126,6 +129,7 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                             onDelete = { vm.deleteProfile(game.packageName) },
                             thermalLevel = thermalLevel,
                             diagnostic = diagnostic,
+                            refreshRates = refreshRates,
                         )
                     }
                 }

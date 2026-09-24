@@ -175,4 +175,17 @@
     <string name="auto_reconnect_disabled">Auto-reconnect turned off, right removed.</string>
     <string name="auto_reconnect_disabled_pending">Auto-reconnect turned off. The right will be removed at the next connection.</string>
     <string name="auto_reconnect_disabled_kept">Auto-reconnect turned off. The right had been granted outside the app: it stays in place. To remove it from a PC: adb shell pm revoke io.github.openquesttuner android.permission.WRITE_SECURE_SETTINGS</string>
+    <!-- Spec 003, US1 : fréquences au-delà de 120 Hz -->
+    <string name="warning_high_refresh_rate">Above 120 Hz, the game must render as many frames per second. Otherwise it repeats frames and can look less smooth than at 120 Hz: lower the resolution or raise the GPU level. The headset gets warmer and battery life drops.</string>
+    <string name="warning_high_rate_game_resolution">The resolution is left to the game: it may be too high for this refresh rate.</string>
+    <string name="settings_persist_high_rate">The whole headset, menu included, stays at %1$d Hz until “Reset all” or a restart, which uses more battery.</string>
+    <string name="refresh_rate_unavailable">%1$d Hz is not available on this headset: pick another refresh rate.</string>
+    <string name="tune_rate_not_declared">%1$d Hz is not available on this headset: edit the profile.</string>
+    <!-- Spec 003, US2 : limites de résolution -->
+    <string name="resolution_limited_for_rate">At %1$d Hz, the resolution is capped at ×%2$.1f.</string>
+    <string name="resolution_lowered">Resolution lowered to ×%1$.1f for %2$d Hz.</string>
+    <string name="tune_resolution_above_limit">Resolution too high for %1$d Hz (×%2$.1f at most): edit the profile.</string>
+    <!-- Spec 003, US3 : fréquence réelle de l'écran -->
+    <string name="display_refresh_rate">Display refresh rate: %1$d Hz</string>
+    <string name="display_refresh_rate_unknown">Display refresh rate: unknown</string>
 </resources>

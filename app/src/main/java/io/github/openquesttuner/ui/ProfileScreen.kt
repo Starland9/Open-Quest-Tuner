@@ -54,6 +54,8 @@ import io.github.openquesttuner.core.ProfileWarning
 import io.github.openquesttuner.core.QuestModel
 import io.github.openquesttuner.core.QuestProperty
 import io.github.openquesttuner.core.RESOLUTION_STEPS
+import io.github.openquesttuner.core.RateSelection
+import io.github.openquesttuner.core.RefreshRatePolicy
 import io.github.openquesttuner.core.ThermalLevel
 import io.github.openquesttuner.games.InstalledGame
 import io.github.openquesttuner.ui.components.ChoiceRow
@@ -78,10 +80,14 @@ fun ProfileScreen(
     onDelete: () -> Unit,
     thermalLevel: ThermalLevel,
     diagnostic: Diagnostic?,
+    refreshRates: List<Int>,
 ) {
     // Suit aussi le profil enregistré, qui peut arriver après l'ouverture de l'écran au démarrage,
     // et revient à « Par défaut du jeu » partout quand le profil est supprimé.
     var draft by remember(game.packageName, saved) { mutableStateOf(saved ?: GameProfile()) }
+    // Palier auquel la résolution vient d'être abaissée pour la fréquence choisie (spec 003,
+    // FR-006) : le message reste affiché jusqu'au changement suivant du profil.
+    var loweredToStep by remember(game.packageName, saved) { mutableStateOf<Int?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     if (confirmDelete) {
@@ -152,9 +158,29 @@ fun ProfileScreen(
                 if (connectionState is ConnectionState.Connected && diagnostic != null) {
                     ActiveIndicator(active = draft.isActiveOn(diagnostic.active))
                 }
-                Settings(draft, model, onChange = { draft = it })
+                Settings(
+                    draft = draft,
+                    model = model,
+                    refreshRates = refreshRates,
+                    loweredToStep = loweredToStep,
+                    onChange = {
+                        draft = it
+                        loweredToStep = null
+                    },
+                    onRateSelected = { selection ->
+                        draft = selection.profile
+                        loweredToStep = selection.loweredToStep
+                    },
+                )
                 Warnings(draft.warnings(model))
-                InfoCard(stringResource(R.string.settings_persist_info))
+                // Spec 003, FR-009 : à fréquence élevée, tout le casque reste à cette fréquence.
+                val highRate = draft.refreshRate?.takeIf(RefreshRatePolicy::isHigh)
+                InfoCard(
+                    listOfNotNull(
+                        stringResource(R.string.settings_persist_info),
+                        highRate?.let { stringResource(R.string.settings_persist_high_rate, it) },
+                    ).joinToString("\n"),
+                )
             }
         }
     }
@@ -191,16 +217,31 @@ private fun ActiveIndicator(active: Boolean) {
 }
 
 @Composable
-private fun Settings(draft: GameProfile, model: QuestModel, onChange: (GameProfile) -> Unit) {
+private fun Settings(
+    draft: GameProfile,
+    model: QuestModel,
+    refreshRates: List<Int>,
+    loweredToStep: Int?,
+    onChange: (GameProfile) -> Unit,
+    onRateSelected: (RateSelection) -> Unit,
+) {
     val default = stringResource(R.string.setting_default)
     fun experimental(vararg properties: QuestProperty) = properties.any { !model.isVerified(it) }
 
+    // Fréquence enregistrée que cet écran ne propose pas (profil venu d'un autre casque, mise à
+    // jour d'Horizon OS) : affichée telle quelle, indisponible, pour ne pas la perdre en silence.
+    val unavailableRate = draft.refreshRate?.takeIf { it !in refreshRates }
     ChoiceRow(
         title = stringResource(R.string.setting_refresh_rate),
-        options = listOf(null to default) + model.refreshRates.map { it to stringResource(R.string.refresh_rate_value, it) },
+        options = listOf(null to default) +
+            (refreshRates + listOfNotNull(unavailableRate)).map { it to stringResource(R.string.refresh_rate_value, it) },
         selected = draft.refreshRate,
-        onSelect = { onChange(draft.copy(refreshRate = it)) },
+        // Une résolution au-dessus du maximum de la fréquence est abaissée, et c'est dit (FR-006).
+        onSelect = { onRateSelected(RefreshRatePolicy.selectRate(draft, it, model)) },
         experimental = experimental(QuestProperty.REFRESH_RATE),
+        helpText = unavailableRate?.let { stringResource(R.string.refresh_rate_unavailable, it) },
+        experimentalOptions = refreshRates.filter(RefreshRatePolicy::isExperimental).toSet(),
+        disabledOptions = setOfNotNull(unavailableRate),
     )
 
     val defaultTexture = model.defaultEyeTexture
@@ -214,14 +255,33 @@ private fun Settings(draft: GameProfile, model: QuestModel, onChange: (GameProfi
         ?.takeIf { EyeTexture.stepOf(defaultTexture, it) == null }
         ?.let { listOf(it to stringResource(R.string.resolution_custom, it.width, it.height)) }
         .orEmpty()
+    // Spec 003, FR-005 : à fréquence élevée, les paliers au-dessus du maximum sont indisponibles.
+    val maxStep = RefreshRatePolicy.maxResolutionStep(draft.refreshRate)
+    val unavailable = RefreshRatePolicy.unavailableSteps(draft.refreshRate, defaultTexture)
+        .map { EyeTexture.forStep(defaultTexture, it) } +
+        custom.map { it.first }.filterNot { RefreshRatePolicy.allowed(draft.refreshRate, it, defaultTexture) }
     ChoiceRow(
         title = stringResource(R.string.setting_resolution),
         options = listOf(null to default) + steps + custom,
         selected = draft.eyeTexture,
         onSelect = { onChange(draft.copy(eyeTexture = it)) },
         experimental = experimental(QuestProperty.TEXTURE_WIDTH, QuestProperty.TEXTURE_HEIGHT),
-        helpText = stringResource(R.string.resolution_help, defaultTexture.width, defaultTexture.height),
+        helpText = listOfNotNull(
+            stringResource(R.string.resolution_help, defaultTexture.width, defaultTexture.height),
+            maxStep?.let { stringResource(R.string.resolution_limited_for_rate, draft.refreshRate ?: 0, it / 100.0) },
+        ).joinToString("\n"),
+        disabledOptions = unavailable.toSet(),
     )
+    val lowered = loweredToStep
+    val rate = draft.refreshRate
+    if (lowered != null && rate != null) {
+        // Dans la page plutôt qu'en snackbar : il reste lisible dans le casque (research.md R6).
+        Text(
+            stringResource(R.string.resolution_lowered, lowered / 100.0, rate),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+    }
 
     ChoiceRow(
         title = stringResource(R.string.setting_cpu),
@@ -275,6 +335,8 @@ private fun Warnings(warnings: Set<ProfileWarning>) {
             when (warning) {
                 ProfileWarning.HEAT -> R.string.warning_heat
                 ProfileWarning.SMOOTHNESS -> R.string.warning_smoothness
+                ProfileWarning.HIGH_REFRESH_RATE -> R.string.warning_high_refresh_rate
+                ProfileWarning.HIGH_RATE_GAME_RESOLUTION -> R.string.warning_high_rate_game_resolution
             },
         )
     }

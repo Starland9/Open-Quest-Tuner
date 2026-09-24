@@ -19,8 +19,15 @@ data class ResetResult(val failed: List<QuestProperty>)
 /** Propriétés `debug.oculus.*` non vides lues sur le casque, triées par clé (FR-024). */
 data class Diagnostic(val active: Map<String, String>)
 
-/** Séquences de commandes de contracts/shell-commands.md, sur un [ShellBackend] quelconque. */
-class Tuner(private val shell: ShellBackend, private val model: QuestModel) {
+/**
+ * Séquences de commandes de contracts/shell-commands.md, sur un [ShellBackend] quelconque.
+ * [display] donne les fréquences que l'écran déclare (spec 003).
+ */
+class Tuner(
+    private val shell: ShellBackend,
+    private val model: QuestModel,
+    private val display: DisplayRates,
+) {
 
     /**
      * « Appliquer et lancer » (FR-019, FR-020) : arrêt du jeu, les 7 propriétés dans l'ordre de
@@ -29,7 +36,9 @@ class Tuner(private val shell: ShellBackend, private val model: QuestModel) {
      * @throws IllegalArgumentException si [packageName] ou [activity] est invalide, avant tout envoi.
      */
     suspend fun applyAndLaunch(packageName: String, activity: String, profile: GameProfile): TuneResult {
-        val violations = profile.validateFor(model)
+        // Écran lu au moment du lancement : couvre un profil venu d'un autre casque, ou une mise à
+        // jour d'Horizon OS qui retire une fréquence (spec 003, cas limites).
+        val violations = profile.validateFor(model, display.declaredRefreshRates())
         if (violations.isNotEmpty()) return TuneResult.InvalidProfile(violations)
 
         // Toutes les commandes sont construites d'abord : une valeur ou un nom refusé par les

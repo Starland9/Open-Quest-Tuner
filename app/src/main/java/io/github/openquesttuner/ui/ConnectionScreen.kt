@@ -96,6 +96,7 @@ fun ConnectionScreen(
     thermalLevel: ThermalLevel,
     diagnostic: Diagnostic?,
     onRefreshDiagnostic: () -> Unit,
+    displayRefreshRate: Int?,
     autoReconnect: AutoReconnectUi,
     onEnableAutoReconnect: (neverExpire: Boolean) -> Unit,
     onReconnectNow: () -> Unit,
@@ -139,6 +140,7 @@ fun ConnectionScreen(
                     thermalLevel = thermalLevel,
                     diagnostic = diagnostic,
                     onRefresh = onRefreshDiagnostic,
+                    displayRefreshRate = displayRefreshRate,
                 )
                 // Première connexion via PC (une seule fois), puis « Passer en sans fil » ;
                 // l'appairage par code n'est qu'un secours (spec US1, amendée le 2026-09-23).
@@ -460,12 +462,23 @@ private fun DiagnosticCard(
     thermalLevel: ThermalLevel,
     diagnostic: Diagnostic?,
     onRefresh: () -> Unit,
+    displayRefreshRate: Int?,
 ) {
     SectionCard(title = stringResource(R.string.diagnostic_title)) {
         Text(
             stringResource(R.string.thermal_state, stringResource(thermalLevel.labelRes())),
             style = MaterialTheme.typography.bodyLarge,
             color = if (thermalLevel.warning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+        )
+        // Fréquence réelle, même hors connexion ; la valeur demandée (`debug.oculus.refreshRate`)
+        // reste dans la liste des réglages actifs ci-dessous (spec 003, FR-010).
+        Text(
+            if (displayRefreshRate != null) {
+                stringResource(R.string.display_refresh_rate, displayRefreshRate)
+            } else {
+                stringResource(R.string.display_refresh_rate_unknown)
+            },
+            style = MaterialTheme.typography.bodyLarge,
         )
         if (connected) {
             when {

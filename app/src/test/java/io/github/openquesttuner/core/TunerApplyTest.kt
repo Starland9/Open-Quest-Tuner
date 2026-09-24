@@ -8,7 +8,8 @@ import org.junit.Test
 class TunerApplyTest {
 
     private val shell = FakeShellBackend()
-    private val tuner = Tuner(shell, QuestModel.QUEST_3)
+    private val display = FakeDisplayRates()
+    private val tuner = Tuner(shell, QuestModel.QUEST_3, display)
 
     private val fullProfile = GameProfile(
         refreshRate = 120,
@@ -117,14 +118,54 @@ class TunerApplyTest {
 
     @Test
     fun `un profil invalide pour le modele n'envoie aucune commande`() = runTest {
-        val result = tuner.applyAndLaunch(PKG, ACTIVITY, fullProfile.copy(refreshRate = 144, gpuLevel = 7))
+        // 150 Hz n'est dans aucune liste : ni celle du modèle, ni celle des fréquences élevées.
+        val result = tuner.applyAndLaunch(PKG, ACTIVITY, fullProfile.copy(refreshRate = 150, gpuLevel = 7))
 
         assertEquals(
             TuneResult.InvalidProfile(
                 listOf(
-                    ProfileViolation(QuestProperty.REFRESH_RATE, 144),
+                    ProfileViolation(QuestProperty.REFRESH_RATE, 150),
                     ProfileViolation(QuestProperty.GPU_LEVEL, 7),
                 ),
+            ),
+            result,
+        )
+        assertEquals(emptyList<String>(), shell.executed)
+    }
+
+    // --- Fréquences au-delà de 120 Hz (spec 003)
+
+    @Test
+    fun `frequence elevee declaree par l'ecran appliquee`() = runTest {
+        val result = tuner.applyAndLaunch(PKG, ACTIVITY, GameProfile(refreshRate = 160))
+
+        assertEquals(TuneResult.Success, result)
+        assertEquals(ShellCommand.setProperty(QuestProperty.REFRESH_RATE, 160).text, shell.executed[1])
+        assertEquals(1, display.reads)
+    }
+
+    @Test
+    fun `frequence elevee non declaree refusee avant toute commande`() = runTest {
+        display.declared = (72..120).toSet()
+        val result = tuner.applyAndLaunch(PKG, ACTIVITY, GameProfile(refreshRate = 160))
+
+        assertEquals(
+            TuneResult.InvalidProfile(
+                listOf(ProfileViolation(QuestProperty.REFRESH_RATE, 160, ViolationReason.RATE_NOT_DECLARED)),
+            ),
+            result,
+        )
+        assertEquals(emptyList<String>(), shell.executed)
+    }
+
+    @Test
+    fun `resolution trop elevee pour la frequence refusee avant toute commande`() = runTest {
+        val above = EyeTexture.forStep(QuestModel.QUEST_3.defaultEyeTexture, 150)
+        val result = tuner.applyAndLaunch(PKG, ACTIVITY, GameProfile(refreshRate = 200, eyeTexture = above))
+
+        assertEquals(
+            TuneResult.InvalidProfile(
+                listOf(ProfileViolation(QuestProperty.TEXTURE_WIDTH, above.width, ViolationReason.ABOVE_RATE_LIMIT)),
             ),
             result,
         )

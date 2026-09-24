@@ -123,6 +123,84 @@ class GameProfileTest {
         )
     }
 
+    // --- Fréquences au-delà de 120 Hz (spec 003)
+
+    private val quest3Screen = (72..207).toSet()
+
+    @Test
+    fun `une frequence elevee declaree par l'ecran est valide`() {
+        assertTrue(GameProfile(refreshRate = 144).validateFor(q3, quest3Screen).isEmpty())
+    }
+
+    @Test
+    fun `une frequence elevee non declaree est refusee`() {
+        assertEquals(
+            listOf(ProfileViolation(QuestProperty.REFRESH_RATE, 144, ViolationReason.RATE_NOT_DECLARED)),
+            GameProfile(refreshRate = 144).validateFor(q3),
+        )
+        assertEquals(
+            listOf(ProfileViolation(QuestProperty.REFRESH_RATE, 200, ViolationReason.RATE_NOT_DECLARED)),
+            GameProfile(refreshRate = 200).validateFor(q3, (72..150).toSet()),
+        )
+    }
+
+    @Test
+    fun `une frequence hors de la liste fermee reste hors plage, meme declaree`() {
+        listOf(150, 207).forEach { rate ->
+            assertEquals(
+                listOf(ProfileViolation(QuestProperty.REFRESH_RATE, rate, ViolationReason.OUT_OF_RANGE)),
+                GameProfile(refreshRate = rate).validateFor(q3, quest3Screen),
+            )
+        }
+    }
+
+    @Test
+    fun `resolution au-dessus du maximum de la frequence refusee`() {
+        val above = EyeTexture.forStep(q3.defaultEyeTexture, 150)
+        assertEquals(
+            listOf(ProfileViolation(QuestProperty.TEXTURE_WIDTH, above.width, ViolationReason.ABOVE_RATE_LIMIT)),
+            GameProfile(refreshRate = 200, eyeTexture = above).validateFor(q3, quest3Screen),
+        )
+        assertTrue(GameProfile(refreshRate = 200).validateFor(q3, quest3Screen).isEmpty())
+        assertTrue(
+            GameProfile(refreshRate = 200, eyeTexture = EyeTexture.forStep(q3.defaultEyeTexture, 80))
+                .validateFor(q3, quest3Screen).isEmpty(),
+        )
+        // SC-005 : rien ne change à 120 Hz.
+        assertTrue(GameProfile(refreshRate = 120, eyeTexture = above).validateFor(q3, quest3Screen).isEmpty())
+    }
+
+    @Test
+    fun `violation a expliquer en premier`() {
+        val cpu = ProfileViolation(QuestProperty.CPU_LEVEL, 9)
+        val rate = ProfileViolation(QuestProperty.REFRESH_RATE, 200, ViolationReason.RATE_NOT_DECLARED)
+        val limit = ProfileViolation(QuestProperty.TEXTURE_WIDTH, 2520, ViolationReason.ABOVE_RATE_LIMIT)
+        assertEquals(rate, listOf(cpu, rate).primary())
+        assertEquals(rate, listOf(limit, rate).primary())
+        assertEquals(limit, listOf(cpu, limit).primary())
+        assertNull(listOf(cpu).primary())
+        assertNull(emptyList<ProfileViolation>().primary())
+    }
+
+    @Test
+    fun `avertissement de frequence elevee`() {
+        assertEquals(
+            setOf(ProfileWarning.HIGH_REFRESH_RATE),
+            GameProfile(refreshRate = 144, eyeTexture = EyeTexture.forStep(q3.defaultEyeTexture, 80)).warnings(q3),
+        )
+        assertTrue(ProfileWarning.HIGH_REFRESH_RATE !in GameProfile(refreshRate = 120).warnings(q3))
+        assertTrue(GameProfile().warnings(q3).isEmpty())
+    }
+
+    @Test
+    fun `resolution laissee au jeu a frequence elevee`() {
+        assertEquals(
+            setOf(ProfileWarning.HIGH_REFRESH_RATE, ProfileWarning.HIGH_RATE_GAME_RESOLUTION),
+            GameProfile(refreshRate = 144).warnings(q3),
+        )
+        assertTrue(ProfileWarning.HIGH_RATE_GAME_RESOLUTION !in GameProfile(refreshRate = 120).warnings(q3))
+    }
+
     // --- Avertissements (FR-018)
 
     @Test

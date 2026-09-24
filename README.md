@@ -38,6 +38,10 @@ headsets use values from Meta's documentation, and their settings are marked *Ex
 ## Features
 
 - **Per-game profiles**: six settings, each of which can stay on *Game default*.
+- **Refresh rates up to 200 Hz** (144, 160, 180, 200), offered only when the headset's display
+  declares them, and always marked *Experimental*: the game must keep up, or it repeats frames.
+  Each of these rates caps the render resolution (×1.0 at 144 and 160 Hz, ×0.9 at 180 Hz, ×0.8
+  at 200 Hz); a higher resolution is lowered, and the app says so.
 - **Apply and launch** in one tap. The app stops the game, writes the 7 managed properties (a
   setting left on *Game default* is cleared, so nothing leaks from the previous game), then
   launches the game.
@@ -45,7 +49,8 @@ headsets use values from Meta's documentation, and their settings are marked *Ex
 - **Game list**: VR games only, with search, a *Profile* badge, and a quick *Launch* button.
 - **Diagnostic**:
   - the properties active right now;
-  - the headset's thermal state, which does not need a connection;
+  - the headset's thermal state and the display's actual refresh rate, which do not need a
+    connection;
   - an *Active on the headset* / *Not applied* indicator on each profile.
 - **Safe by design**:
   - the app can only write a closed list of 7 properties, with values picked from menus, so
@@ -157,6 +162,8 @@ connection policy, thermal levels…) is covered by JVM tests that run without a
   [Spec Kit](https://github.com/github/spec-kit), in French.
 - [specs/002-standalone-reconnect/](specs/002-standalone-reconnect/) does the same for
   Auto-reconnect and the *Never expire* choice.
+- [specs/003-high-refresh-rates/](specs/003-high-refresh-rates/) does the same for refresh rates
+  above 120 Hz.
 - [.specify/memory/constitution.md](.specify/memory/constitution.md) holds the project's
   principles: headset safety first, clean-room and privacy, verified on a real headset,
   testable core, simplicity.

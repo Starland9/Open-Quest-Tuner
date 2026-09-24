@@ -4,7 +4,8 @@
 
 **Created**: 2026-09-24
 
-**Status**: Draft (amendée le 2026-09-24 : plafond à 200 Hz, à la demande de l'utilisateur)
+**Status**: Draft (amendée le 2026-09-24 : plafond à 200 Hz, à la demande de l'utilisateur ; puis
+précisions issues de `/speckit-analyze` : FR-008, SC-006, US3 scénario 1)
 
 **Input**: User description: "Fréquences d'affichage élevées (seconde issue : « peut-on monter à 144 Hz ? »). Proposer sur Quest 3 les fréquences au-delà de 120 Hz mesurées le 2026-09-24 (144, 160, 180, 200, 207 Hz, voir docs/compatibility.md), marquées expérimental ; empêcher de choisir certaines résolutions pour certaines fréquences élevées. Demande de l'utilisateur : « avec ce que tu as, crée la spec ; on mettra expérimental sur les valeurs élevées avec impossibilité de choisir certaines résolutions pour certains fps si possible »."
 
@@ -99,7 +100,8 @@ casque.
 **Acceptance Scenarios**:
 
 1. **Given** un profil à 180 Hz appliqué, **When** l'utilisateur ouvre le diagnostic, **Then**
-   il voit « Fréquence de l'écran : 180 Hz », à côté de la valeur demandée.
+   il voit « Fréquence de l'écran : 180 Hz », distincte de la valeur demandée, qui reste dans
+   la liste des réglages actifs quand l'appli est connectée.
 2. **Given** l'appli déconnectée, **When** l'utilisateur ouvre le diagnostic, **Then** la
    fréquence réelle de l'écran reste affichée.
 3. **Given** le diagnostic ouvert, **When** la fréquence de l'écran change, **Then** la valeur
@@ -168,9 +170,11 @@ casque.
 - **FR-007**: Aux fréquences de 120 Hz et moins, tous les paliers de résolution DOIVENT rester
   disponibles, comme aujourd'hui. Repasser à l'une de ces fréquences NE DOIT PAS remonter la
   résolution d'office.
-- **FR-008**: « Appliquer et lancer » et « Lancer » DOIVENT refuser un profil dont la fréquence
-  n'est pas déclarée par l'écran du casque, ou dont la résolution dépasse le maximum de sa
-  fréquence. Le jeu n'est pas lancé, et l'appli indique quel réglage corriger.
+- **FR-008**: « Appliquer et lancer » et « Lancer » DOIVENT refuser un profil dont la fréquence,
+  au-delà de 120 Hz, n'est pas déclarée par l'écran du casque, ou dont la résolution dépasse le
+  maximum de sa fréquence. Le jeu n'est pas lancé, et l'appli indique quel réglage corriger. Les
+  fréquences de 120 Hz et moins gardent la règle actuelle (celles du modèle de casque), sans
+  dépendre de l'écran : un écran illisible ne bloque donc aucun profil existant (SC-005).
 
 **Information et diagnostic**
 
@@ -193,8 +197,8 @@ casque.
 - **Limite de résolution** : pour chaque fréquence élevée, le palier de résolution maximal
   autorisé (FR-005).
 - **Profil de jeu** (entité existante) : sa structure ne change pas. Il gagne une règle de
-  validité : sa fréquence doit être déclarée par l'écran, et sa résolution ne doit pas dépasser
-  le maximum de sa fréquence.
+  validité : une fréquence au-delà de 120 Hz doit être déclarée par l'écran, et la résolution ne
+  doit pas dépasser le maximum de sa fréquence.
 
 ## Success Criteria *(mandatory)*
 
@@ -210,7 +214,10 @@ casque.
 - **SC-005**: Les profils existants à 120 Hz ou moins sont appliqués exactement comme avant :
   aucune valeur modifiée, aucune option retirée.
 - **SC-006**: La fréquence réelle affichée par le diagnostic correspond à celle mesurée sur le
-  casque dans 100 % des essais, et se met à jour en moins de 5 secondes après un changement.
+  casque dans 100 % des essais, et se met à jour en moins de 5 secondes après un changement de la
+  fréquence de l'écran. Ce délai court à partir du changement réel de l'écran, qui peut lui-même
+  prendre plus de temps : après « Tout réinitialiser », le retour à la fréquence du menu a pris
+  environ 12 s sur Quest 3 (research.md R2).
 - **SC-007**: 100 % des nouveaux textes de l'interface sont disponibles en français et en
   anglais.
 

@@ -20,11 +20,14 @@ import io.github.openquesttuner.core.GameProfile
 import io.github.openquesttuner.core.QuestModel
 import io.github.openquesttuner.core.QuestProperty
 import io.github.openquesttuner.core.ReconnectIssue
+import io.github.openquesttuner.core.RefreshRatePolicy
 import io.github.openquesttuner.core.ThermalLevel
 import io.github.openquesttuner.core.TuneResult
 import io.github.openquesttuner.core.TuneStep
+import io.github.openquesttuner.core.ViolationReason
 import io.github.openquesttuner.core.WirelessSwitchResult
 import io.github.openquesttuner.core.matchesQuery
+import io.github.openquesttuner.core.primary
 import io.github.openquesttuner.games.InstalledGame
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -65,6 +68,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val profiles: StateFlow<Map<String, GameProfile>> = container.profileStore.profiles
 
+    private val _refreshRates = MutableStateFlow(availableRefreshRates())
+
+    /**
+     * Fréquences proposées dans les profils : celles du modèle, puis les fréquences élevées que
+     * l'écran déclare (spec 003, FR-001). Relues à l'ouverture de chaque profil.
+     */
+    val refreshRates: StateFlow<List<Int>> = _refreshRates.asStateFlow()
+
     private val _games = MutableStateFlow<List<InstalledGame>>(emptyList())
     val games: StateFlow<List<InstalledGame>> = _games.asStateFlow()
 
@@ -89,6 +100,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val thermalLevel: StateFlow<ThermalLevel> = container.thermal.level
 
+    /** Fréquence réelle de l'écran, lisible sans connexion (spec 003, FR-010). */
+    val displayRefreshRate: StateFlow<Int?> = container.display.currentRefreshRate
+
     private val _diagnostic = MutableStateFlow<Diagnostic?>(null)
 
     /** Dernière lecture des propriétés actives ; `null` hors connexion ou si la lecture a échoué. */
@@ -107,6 +121,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun navigate(screen: Screen) {
         // L'indicateur « actif sur le casque » et la carte Diagnostic partent d'une lecture fraîche.
         if (screen is Screen.Profile || screen == Screen.Connection) refreshDiagnostic()
+        // Une mise à jour d'Horizon OS qui retire une fréquence se voit à l'ouverture suivante.
+        if (screen is Screen.Profile) _refreshRates.value = availableRefreshRates()
         _backStack.update { stack -> if (stack.last() == screen) stack else stack + screen }
     }
 
@@ -316,7 +332,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 if (persistFirst && !persist(game.packageName, profile)) return@launch
                 val result = container.tuner.applyAndLaunch(game.packageName, game.launchActivity, profile)
-                onTuneResult(game, result)
+                onTuneResult(game, profile, result)
             } finally {
                 _tuningPackage.value = null
                 refreshDiagnostic()
@@ -367,14 +383,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         false
     }
 
-    private fun onTuneResult(game: InstalledGame, result: TuneResult) {
+    private fun onTuneResult(game: InstalledGame, profile: GameProfile, result: TuneResult) {
         when (result) {
             TuneResult.Success -> showMessage(R.string.tune_success)
             TuneResult.NotConnected -> showMessage(R.string.tune_not_connected)
-            is TuneResult.InvalidProfile -> showMessage(
-                R.string.tune_invalid_profile,
-                result.violations.map { text(it.property.labelRes()) }.distinct().joinToString(),
-            )
+            is TuneResult.InvalidProfile -> {
+                val primary = result.violations.primary()
+                when (primary?.reason) {
+                    ViolationReason.RATE_NOT_DECLARED -> showMessage(R.string.tune_rate_not_declared, primary.value)
+                    ViolationReason.ABOVE_RATE_LIMIT -> {
+                        val rate = requireNotNull(profile.refreshRate)
+                        showMessage(
+                            R.string.tune_resolution_above_limit,
+                            rate,
+                            requireNotNull(RefreshRatePolicy.maxResolutionStep(rate)) / 100.0,
+                        )
+                    }
+                    else -> showMessage(
+                        R.string.tune_invalid_profile,
+                        result.violations.map { text(it.property.labelRes()) }.distinct().joinToString(),
+                    )
+                }
+            }
             is TuneResult.StepFailed -> {
                 Log.w(TAG, "Étape en échec : ${result.step} (${result.output.trim().take(200)})")
                 when (val step = result.step) {
@@ -391,6 +421,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    private fun availableRefreshRates(): List<Int> =
+        RefreshRatePolicy.available(questModel, container.display.declaredRefreshRates())
 
     private fun text(@StringRes res: Int): String = getApplication<Application>().getString(res)
 

@@ -175,4 +175,17 @@
     <string name="auto_reconnect_disabled">Reconnexion autonome désactivée, droit retiré.</string>
     <string name="auto_reconnect_disabled_pending">Reconnexion autonome désactivée. Le droit sera retiré à la prochaine connexion.</string>
     <string name="auto_reconnect_disabled_kept">Reconnexion autonome désactivée. Le droit avait été accordé en dehors de l\'appli : il reste en place. Pour le retirer depuis un PC : adb shell pm revoke io.github.openquesttuner android.permission.WRITE_SECURE_SETTINGS</string>
+    <!-- Spec 003, US1 : fréquences au-delà de 120 Hz -->
+    <string name="warning_high_refresh_rate">Au-delà de 120 Hz, le jeu doit produire autant d\'images par seconde. Sinon, il répète des images et peut sembler moins fluide qu\'à 120 Hz : baisse la résolution ou monte le niveau GPU. La chauffe augmente et l\'autonomie baisse.</string>
+    <string name="warning_high_rate_game_resolution">La résolution est laissée au jeu : elle peut être trop élevée pour cette fréquence.</string>
+    <string name="settings_persist_high_rate">Tout le casque, menu compris, reste à %1$d Hz jusqu\'à « Tout réinitialiser » ou un redémarrage, ce qui consomme davantage de batterie.</string>
+    <string name="refresh_rate_unavailable">%1$d Hz n\'est pas disponible sur ce casque : choisis une autre fréquence.</string>
+    <string name="tune_rate_not_declared">%1$d Hz n\'est pas disponible sur ce casque : modifie le profil.</string>
+    <!-- Spec 003, US2 : limites de résolution -->
+    <string name="resolution_limited_for_rate">À %1$d Hz, la résolution est limitée à ×%2$.1f.</string>
+    <string name="resolution_lowered">Résolution abaissée à ×%1$.1f pour %2$d Hz.</string>
+    <string name="tune_resolution_above_limit">Résolution trop élevée pour %1$d Hz (×%2$.1f au plus) : modifie le profil.</string>
+    <!-- Spec 003, US3 : fréquence réelle de l'écran -->
+    <string name="display_refresh_rate">Fréquence de l\'écran : %1$d Hz</string>
+    <string name="display_refresh_rate_unknown">Fréquence de l\'écran : inconnue</string>
 </resources>
