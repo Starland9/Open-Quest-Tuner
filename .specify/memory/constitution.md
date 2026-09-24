@@ -1,25 +1,3 @@
-<!--
-Sync Impact Report
-- Version : 1.0.0 → 1.1.0 (MINOR : principe I élargi)
-- Principe modifié : I. Sécurité du casque d'abord (NON NÉGOCIABLE), titre inchangé
-  - la règle de réversibilité est précisée pour les réglages de performance (`debug.oculus.*`) ;
-  - nouvelle règle : un changement durable de l'accès au débogage n'est permis qu'avec un choix
-    explicite, un retour en arrière en un geste, et la valeur d'origine retenue ;
-  - justification complétée.
-- Sections ajoutées : aucune
-- Sections supprimées : aucune
-- Modèles (.specify/templates) : aucun à modifier. plan-template, spec-template et tasks-template
-  lisent la constitution sans en recopier le texte.
-- Suivi :
-  - specs/002-standalone-reconnect/plan.md : dans Complexity Tracking, les deux « écarts »
-    deviennent conformes au principe I v1.1.0, et la proposition d'amendement est à retirer ;
-  - specs/001-game-profiles-mvp/spec.md, FR-026 : sa note d'exception peut citer le principe I
-    v1.1.0 ;
-  - specs/002-standalone-reconnect (data-model, contrat C10) : si la permission était déjà
-    accordée avant l'activation, l'appli ne doit pas la retirer à la désactivation (condition 3,
-    « ne rétablir que ce qu'elle a changé »).
-- Aucun TODO différé.
--->
 # Constitution d'OpenQuestTuner
 
 OpenQuestTuner est une application Android 2D open source pour casques Meta Quest, alternative

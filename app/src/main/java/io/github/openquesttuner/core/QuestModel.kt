@@ -12,6 +12,8 @@ private val QUEST_3_REFRESH_RATES = listOf(72, 80, 90, 96, 100, 120)
  * (passthrough coupé, suivi désactivé…) et l'interface l'explique.
  * [verified] : propriétés dont l'effet a été constaté sur ce modèle et consigné dans
  * docs/compatibility.md. Tout le reste est « expérimental » (FR-017, principe III).
+ * [autoReconnectVerified] : reconnexion autonome vérifiée sur ce modèle et consignée dans
+ * docs/compatibility.md ; sinon, badge « expérimental » (spec 002, FR-018).
  */
 enum class QuestModel(
     val displayName: String,
@@ -24,6 +26,7 @@ enum class QuestModel(
     val alwaysAvailableCpuMax: Int,
     val alwaysAvailableGpuMax: Int,
     val verified: Set<QuestProperty>,
+    val autoReconnectVerified: Boolean = false,
 ) {
     QUEST_3(
         displayName = "Quest 3",
@@ -45,6 +48,9 @@ enum class QuestModel(
             QuestProperty.GPU_LEVEL,
             QuestProperty.FOVEATION_LEVEL,
         ),
+        // Reconnexion autonome : 5 redémarrages sur 5 sans PC, vros 207 (docs/compatibility.md,
+        // 2026-09-24).
+        autoReconnectVerified = true,
     ),
     QUEST_3S(
         displayName = "Quest 3S",

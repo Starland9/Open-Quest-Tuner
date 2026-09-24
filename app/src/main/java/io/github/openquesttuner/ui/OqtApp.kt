@@ -49,6 +49,13 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
             val thermalLevel by vm.thermalLevel.collectAsState()
             val diagnostic by vm.diagnostic.collectAsState()
             val resetting by vm.resetting.collectAsState()
+            val autoReconnectStatus by vm.autoReconnectStatus.collectAsState()
+            val autoReconnectBusy by vm.autoReconnectBusy.collectAsState()
+            val preparing by vm.autoReconnectPreparing.collectAsState()
+            val autoReconnectIssue by vm.autoReconnectIssue.collectAsState()
+            val autoReconnectProposal by vm.autoReconnectProposal.collectAsState()
+            val expiryStatus by vm.expiryStatus.collectAsState()
+            val authorizationLifetime by vm.authorizationLifetime.collectAsState()
             when (val screen = backStack.last()) {
                 Screen.Games -> GamesScreen(
                     games = filteredGames,
@@ -69,6 +76,7 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                             state = connectionState,
                             onClick = { vm.navigate(Screen.Connection) },
                             modifier = Modifier.padding(end = 8.dp),
+                            preparing = preparing,
                         )
                     },
                 )
@@ -87,6 +95,19 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                     thermalLevel = thermalLevel,
                     diagnostic = diagnostic,
                     onRefreshDiagnostic = vm::refreshDiagnostic,
+                    autoReconnect = AutoReconnectUi(
+                        status = autoReconnectStatus,
+                        experimental = vm.autoReconnectExperimental,
+                        busy = autoReconnectBusy,
+                        preparing = preparing,
+                        issue = autoReconnectIssue,
+                        lifetime = authorizationLifetime,
+                        expiryStatus = expiryStatus,
+                    ),
+                    onEnableAutoReconnect = vm::enableAutoReconnect,
+                    onReconnectNow = vm::reconnectNow,
+                    onSetNeverExpire = vm::setNeverExpire,
+                    onDisableAutoReconnect = vm::disableAutoReconnect,
                 )
                 is Screen.Profile -> {
                     // Le ViewModel retire l'écran si le jeu disparaît de la liste (désinstallation).
@@ -108,6 +129,18 @@ fun OqtApp(vm: MainViewModel = viewModel()) {
                         )
                     }
                 }
+            }
+            if (autoReconnectProposal) {
+                // Même fenêtre que « Activer » dans l'écran Connexion, avec un autre titre (FR-003).
+                AutoReconnectDialog(
+                    title = R.string.auto_reconnect_proposal_title,
+                    lifetime = authorizationLifetime,
+                    onConfirm = { neverExpire ->
+                        vm.dismissAutoReconnectProposal()
+                        vm.enableAutoReconnect(neverExpire)
+                    },
+                    onDismiss = vm::dismissAutoReconnectProposal,
+                )
             }
             SnackbarHost(
                 hostState = snackbarHostState,

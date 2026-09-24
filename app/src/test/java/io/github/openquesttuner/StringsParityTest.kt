@@ -23,6 +23,14 @@ class StringsParityTest {
             .associate { it.getAttribute("name") to it.textContent }
     }
 
+    /** Noms des `<plurals>`. */
+    private fun plurals(folder: String): Set<String> {
+        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+            .parse(File(resDir, "$folder/strings.xml"))
+        val nodes = document.getElementsByTagName("plurals")
+        return (0 until nodes.length).mapTo(HashSet()) { (nodes.item(it) as Element).getAttribute("name") }
+    }
+
     private val english = strings("values")
     private val french = strings("values-fr")
 
@@ -41,5 +49,13 @@ class StringsParityTest {
                 placeholder.findAll(french.getValue(name)).map { it.value }.toSet()
         }
         assertEquals("Paramètres différents entre anglais et français", emptyList<String>(), mismatches)
+    }
+
+    @Test
+    fun `les memes pluriels existent en anglais et en francais`() {
+        val englishPlurals = plurals("values")
+        val frenchPlurals = plurals("values-fr")
+        assertEquals("Pluriels absents en français", emptySet<String>(), englishPlurals - frenchPlurals)
+        assertEquals("Pluriels absents en anglais", emptySet<String>(), frenchPlurals - englishPlurals)
     }
 }

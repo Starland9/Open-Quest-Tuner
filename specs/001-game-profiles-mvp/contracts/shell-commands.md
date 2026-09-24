@@ -25,6 +25,8 @@ shell, par construction.
 | C7 | `enableWirelessDebugging()` | `settings put global adb_wifi_enabled 1` | aucune | code de sortie 0. Horizon OS peut alors afficher sa fenêtre « autoriser sur ce réseau » ; le réglage reste à 0 tant que l'utilisateur n'a pas accepté. Il revient à 0 à chaque redémarrage (constaté), donc FR-026 est respecté. |
 | C8 | `readWirelessDebugging()` | `settings get global adb_wifi_enabled` | aucune | code de sortie 0. Le débogage sans fil est actif si la sortie, sans espaces, vaut `1`. |
 
+C9 à C13 : voir l'amendement [specs/002-standalone-reconnect/contracts/shell-commands.md](../../002-standalone-reconnect/contracts/shell-commands.md).
+
 Le dispositif du « code de sortie » est décrit dans la section suivante.
 
 ### Validation

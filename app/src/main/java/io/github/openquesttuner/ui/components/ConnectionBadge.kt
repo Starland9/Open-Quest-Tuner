@@ -17,15 +17,24 @@ import io.github.openquesttuner.R
 import io.github.openquesttuner.core.ConnectionMethod
 import io.github.openquesttuner.core.ConnectionState
 import io.github.openquesttuner.core.FailureReason
+import io.github.openquesttuner.core.ReconnectIssue
 
-/** Puce d'état de la connexion, toujours visible dans la barre du haut ; ouvre l'écran Connexion. */
+/**
+ * Puce d'état de la connexion, toujours visible dans la barre du haut ; ouvre l'écran Connexion.
+ * [preparing] : réactivation du débogage sans fil en cours, affichée comme une connexion (spec 002).
+ */
 @Composable
-fun ConnectionBadge(state: ConnectionState, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun ConnectionBadge(
+    state: ConnectionState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    preparing: Boolean = false,
+) {
     AssistChip(
         onClick = onClick,
-        label = { Text(stringResource(state.labelRes())) },
+        label = { Text(stringResource(if (preparing) R.string.state_connecting else state.labelRes())) },
         leadingIcon = {
-            Box(Modifier.size(10.dp).background(state.dotColor(), CircleShape))
+            Box(Modifier.size(10.dp).background(if (preparing) CONNECTING_COLOR else state.dotColor(), CircleShape))
         },
         modifier = modifier.heightIn(min = 48.dp),
     )
@@ -54,12 +63,26 @@ fun FailureReason.messageRes(): Int = when (this) {
     FailureReason.UNKNOWN -> R.string.failure_unknown
 }
 
+/** Cause d'un échec de reconnexion autonome et étape suivante (spec 002, FR-009). */
+@StringRes
+fun ReconnectIssue.messageRes(): Int = when (this) {
+    ReconnectIssue.DEBUGGING_DISABLED -> R.string.issue_debugging_disabled
+    ReconnectIssue.NO_WIFI -> R.string.issue_no_wifi
+    ReconnectIssue.RIGHT_LOST -> R.string.issue_right_lost
+    ReconnectIssue.NETWORK_NOT_ALLOWED -> R.string.issue_network_not_allowed
+    ReconnectIssue.AUTHORIZATION_LOST -> R.string.issue_authorization_lost
+    ReconnectIssue.WIRELESS_NOT_STARTED -> R.string.issue_wireless_not_started
+    ReconnectIssue.UNKNOWN -> R.string.issue_unknown
+}
+
 val ConnectionState.isBusy: Boolean
     get() = this is ConnectionState.Pairing || this is ConnectionState.Connecting
 
 private fun ConnectionState.dotColor(): Color = when (this) {
     is ConnectionState.Connected -> Color(0xFF6DD58C)
-    ConnectionState.Pairing, is ConnectionState.Connecting -> Color(0xFFFFB870)
+    ConnectionState.Pairing, is ConnectionState.Connecting -> CONNECTING_COLOR
     ConnectionState.Disconnected -> Color(0xFF8A9199)
     is ConnectionState.Failed -> Color(0xFFFFB4AB)
 }
+
+private val CONNECTING_COLOR = Color(0xFFFFB870)

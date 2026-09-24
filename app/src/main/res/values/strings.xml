@@ -35,7 +35,7 @@
     <string name="pc_title">First connection (once, with a PC)</string>
     <string name="pc_step_1">Plug the headset into a computer with ADB and run:</string>
     <string name="pc_step_2">Unplug the cable, tap “Connect (via PC)”, then accept the debugging prompt in the headset (“Always allow”).</string>
-    <string name="pc_note">Only once: then tap “Switch to wireless” and you won\'t need the PC anymore.</string>
+    <string name="pc_note">Only once: then tap “Switch to wireless”, then turn on auto-reconnect. You won\'t need the PC anymore.</string>
     <string name="connect_pc">Connect (via PC)</string>
     <string name="wireless_note">Some Horizon OS versions don\'t show this screen. In that case, do the first connection with a PC, then “Switch to wireless”.</string>
     <string name="switch_to_wireless">Switch to wireless</string>
@@ -123,4 +123,56 @@
     <string name="diagnostic_no_active">No active setting.</string>
     <string name="profile_active">Active on the headset</string>
     <string name="profile_not_applied">Not applied to the headset</string>
+    <!-- Spec 002, US1 : reconnexion autonome -->
+    <string name="auto_reconnect_title">Auto-reconnect</string>
+    <string name="auto_reconnect_summary">After a headset restart, the app turns wireless debugging back on by itself and reconnects, without a PC.</string>
+    <string name="auto_reconnect_status_active">Active</string>
+    <string name="auto_reconnect_status_inactive">Inactive</string>
+    <string name="auto_reconnect_enable">Turn on</string>
+    <string name="auto_reconnect_reconnect">Reconnect</string>
+    <string name="auto_reconnect_connect_first">Connect the app to turn on this option.</string>
+    <string name="auto_reconnect_dialog_title">Turn on auto-reconnect?</string>
+    <string name="auto_reconnect_proposal_title">No more need for the PC?</string>
+    <string name="auto_reconnect_dialog_body">• Each time it opens, the app will turn wireless debugging back on by itself, then connect to it.\n• To do so, it grants itself a headset system right, which it keeps until you turn the option off or uninstall the app.\n• It only uses it for this single action.\n• The headset must be connected to Wi-Fi.</string>
+    <string name="auto_reconnect_dialog_confirm">Turn on</string>
+    <string name="auto_reconnect_dialog_later">Later</string>
+    <string name="auto_reconnect_enabled">Auto-reconnect turned on.</string>
+    <string name="auto_reconnect_unavailable">The headset did not grant this right: the option is unavailable on this headset. “Switch to wireless” still works.</string>
+    <string name="auto_reconnect_not_connected">Connect first.</string>
+    <string name="auto_reconnect_preparing">Turning wireless debugging back on…</string>
+    <string name="auto_reconnect_preparing_hint">If the headset asks you to allow wireless debugging on this network, accept it and check “Always allow”.</string>
+    <!-- Spec 002, US2 : causes d'échec de la reconnexion autonome -->
+    <string name="issue_debugging_disabled">Debugging is off on the headset: turn developer mode back on, then reopen the app.</string>
+    <string name="issue_no_wifi">No Wi-Fi: connect the headset to a Wi-Fi network. The app will try again by itself.</string>
+    <string name="issue_right_lost">The app can no longer turn wireless debugging back on: connect it via PC, then tap “Reactivate”.</string>
+    <string name="issue_network_not_allowed">Wireless debugging did not turn on. If the headset showed “allow on this network”, tap “Reconnect” and accept it, checking “Always allow”. Otherwise, try again or go through the PC.</string>
+    <string name="issue_authorization_lost">The headset no longer recognizes the app\'s authorization: do the “via PC” step once more.</string>
+    <string name="issue_wireless_not_started">Wireless debugging is on, but the app can\'t find it: try again, or go through the PC.</string>
+    <string name="issue_unknown">Could not reconnect: try again, or go through the PC.</string>
+    <string name="auto_reconnect_status_needs_reactivation">Needs reactivation</string>
+    <string name="auto_reconnect_needs_reactivation_hint">The app lost the right to turn wireless debugging back on. Connect it, via PC if needed, then tap “Reactivate”.</string>
+    <string name="auto_reconnect_reactivate">Reactivate</string>
+    <!-- Spec 002, US4 : autorisations sans expiration -->
+    <plurals name="auto_reconnect_lifetime_days">
+        <item quantity="one">On this headset, the debugging authorization expires after %1$d day without a connection via PC: you will then have to do the PC step once more.</item>
+        <item quantity="other">On this headset, the debugging authorization expires after %1$d days without a connection via PC: you will then have to do the PC step once more.</item>
+    </plurals>
+    <string name="auto_reconnect_lifetime_less_than_day">On this headset, the debugging authorization expires in less than a day without a connection via PC: you will then have to do the PC step once more.</string>
+    <string name="never_expire_label">Never expire debugging authorizations</string>
+    <string name="never_expire_consequences">• Applies to every debugging authorization of the headset, the PC\'s included.\n• Stays in place after a restart.\n• Stays in place if you uninstall the app without turning it off first.\n• You can go back to the original delay at any time.</string>
+    <string name="never_expire_dialog_title">Never expire debugging authorizations?</string>
+    <string name="never_expire_status_on">Authorizations without expiry: on</string>
+    <string name="never_expire_status_off">Authorizations without expiry: off</string>
+    <string name="never_expire_status_pending">Authorizations without expiry: original delay restored at the next connection</string>
+    <string name="never_expire_enable">Turn on</string>
+    <string name="never_expire_disable">Restore the delay</string>
+    <string name="never_expire_applied">Debugging authorizations no longer expire.</string>
+    <string name="never_expire_restored">Original delay restored.</string>
+    <string name="never_expire_pending">The original delay will be restored at the next connection.</string>
+    <string name="never_expire_failed">The authorization delay could not be changed. Try again later.</string>
+    <!-- Spec 002, US3 : désactiver la reconnexion autonome -->
+    <string name="auto_reconnect_disable">Turn off</string>
+    <string name="auto_reconnect_disabled">Auto-reconnect turned off, right removed.</string>
+    <string name="auto_reconnect_disabled_pending">Auto-reconnect turned off. The right will be removed at the next connection.</string>
+    <string name="auto_reconnect_disabled_kept">Auto-reconnect turned off. The right had been granted outside the app: it stays in place. To remove it from a PC: adb shell pm revoke io.github.openquesttuner android.permission.WRITE_SECURE_SETTINGS</string>
 </resources>

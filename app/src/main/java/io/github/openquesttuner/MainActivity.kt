@@ -11,4 +11,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent { OqtTheme { OqtApp() } }
     }
+
+    override fun onResume() {
+        super.onResume()
+        // La permission a pu être retirée depuis un PC pendant que l'appli était en arrière-plan.
+        (application as OqtApplication).container.autoReconnect.refresh()
+    }
 }

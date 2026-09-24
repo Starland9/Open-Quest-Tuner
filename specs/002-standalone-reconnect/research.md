@@ -68,16 +68,21 @@ réglage, puis attend, ce qui reste sans danger.
 - **Perte du Wi-Fi ou changement de point d'accès (BSSID)** : remise à 0. C'est ce qu'on a vu
   après une mise en veille, le 2026-09-23.
 - **Réseaux autorisés et redémarrage** : ils ne survivaient pas au redémarrage sous Android 11 à
-  12L ; c'est corrigé depuis Android 13 (change 2128832). Horizon OS actuel est en Android 14 :
-  un réseau « toujours autorisé » le reste après un redémarrage. [C] pour AOSP, [S] pour Horizon
-  OS.
+  12L ; c'est corrigé depuis Android 13 (change 2128832). [C] pour AOSP. **Pas sur Horizon OS**
+  (Quest 3, vros 207, essai du 2026-09-24) : la fenêtre réapparaît à chaque redémarrage, même
+  après « Toujours autoriser » sur la même borne, et `dumpsys adb` ne garde qu'une entrée
+  `wifiAP`. Il reste donc un geste dans le casque après chaque redémarrage. [C] pour Horizon OS.
+- **Délai avant la remise à 0** : la valeur écrite par l'appli reste lisible quelques
+  millisecondes avant que le système ne la remette à 0 pour afficher sa fenêtre. [C] (essai du
+  2026-09-24).
 
 **Décisions** :
 - Écrire seulement si le Wi-Fi est connecté. Sinon, renvoyer la cause `NO_WIFI` et attendre le
   réseau (R4).
-- Après l'écriture, sonder la valeur toutes les secondes, jusqu'à 60 s. On réutilise
-  `ConnectionPolicy.awaitWirelessEnabled` du MVP : si la fenêtre réseau apparaît, la valeur
-  repasse à 1 après l'acceptation.
+- Après l'écriture, attendre un intervalle (1 s) avant la première relecture, pour ne pas prendre
+  l'écriture de l'appli pour une acceptation. Puis sonder la valeur toutes les secondes, jusqu'à
+  60 s en tout. On réutilise `ConnectionPolicy.awaitWirelessEnabled` du MVP : si la fenêtre
+  réseau apparaît, la valeur repasse à 1 après l'acceptation.
 - Écrire **au démarrage de l'appli seulement** (FR-008), jamais depuis un récepteur de démarrage
   du casque. Deux raisons :
   - la fenêtre réseau d'Horizon OS est exclusive : tant qu'elle est ouverte, aucune appli ne se
@@ -131,7 +136,9 @@ davantage.
   branche principale.
 - Shizuku et shizuku4quest contournent ce mécanisme en écrivant `adb_allowed_connection_time=0`.
 - Sur le Quest 3 de test, `adb_allowed_connection_time` vaut déjà **0**, les clés n'y expirent
-  pas (docs/compatibility.md). On ne sait pas si c'est le réglage d'usine d'Horizon OS. [I]
+  pas (docs/compatibility.md). Ce n'est **pas** le réglage d'usine : `dumpsys settings` attribue
+  cette valeur à SideQuest (`pkg:quest.side.vr`). Sans SideQuest, un Quest garde donc
+  probablement le défaut d'AOSP, 7 jours, et le choix de l'US4 y sera proposé. [C]
 
 **Conséquence** : sur un casque à 7 jours, une appli qui ne se connecte qu'en sans fil perd son
 autorisation au plus tard 7 jours après sa dernière connexion via PC ou port 5555. Il faut alors
@@ -149,6 +156,9 @@ FR-025) :
   règle « une seule écriture par l'API » (`adb_wifi_enabled`) reste vraie ;
 - l'appli retient la valeur d'origine **avant** d'écrire, et ne rétablit que si le réglage vaut
   encore `0` ;
+- C12 n'accepte qu'une valeur de 1 ms à 3 650 jours (principe I : « entiers bornés par des
+  plages connues »). Hors de cette plage, par exemple pour une valeur négative, le choix n'est pas
+  proposé : l'appli n'écrit jamais une valeur qu'elle ne saurait pas rétablir ;
 - si l'autorisation a quand même expiré, la cause affichée est `AUTHORIZATION_LOST` (R7).
 
 **Pourquoi le shell plutôt que l'API** : le choix se fait forcément pendant une connexion, qu'il
@@ -192,11 +202,12 @@ différer d'AOSP. On l'a vu avec l'écran d'appairage, absent du casque.
 
 ## À vérifier sur casque
 
-- `pm grant` de C9 accepté sur Horizon OS, et permission toujours accordée après un redémarrage
-  (quickstart 1.1, 1.2). [S]
-- Réactivation et connexion en moins de 15 s après l'ouverture (1.2). [S]
-- Réseau « toujours autorisé » conservé après un redémarrage (1.2), et fenêtre sur un nouveau
-  réseau (1.5). [S]
+- ~~`pm grant` de C9 accepté sur Horizon OS, et permission toujours accordée après un
+  redémarrage (quickstart 1.1, 1.2).~~ Confirmé le 2026-09-24.
+- ~~Réactivation et connexion en moins de 15 s après l'ouverture (1.2).~~ Confirmé : 5 sur 5,
+  de 3,8 à 5,8 s.
+- ~~Réseau « toujours autorisé » conservé après un redémarrage (1.2)~~ : non, la fenêtre
+  réapparaît à chaque redémarrage (R3). Reste à voir : la fenêtre sur un nouveau réseau (1.5).
 - Exception levée quand adbd refuse une clé (2.4). [I]
 - Valeur d'usine de `adb_allowed_connection_time` sur d'autres casques (à demander dans l'issue).
   [I]

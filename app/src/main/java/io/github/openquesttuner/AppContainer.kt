@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Build
 import io.github.openquesttuner.adb.AdbIdentityStore
 import io.github.openquesttuner.adb.AdbShellBackend
+import io.github.openquesttuner.adb.AndroidWirelessSwitch
+import io.github.openquesttuner.adb.AutoReconnectController
 import io.github.openquesttuner.adb.ConnectionPrefs
 import io.github.openquesttuner.core.ProfileStore
 import io.github.openquesttuner.core.QuestModel
@@ -25,11 +27,18 @@ class AppContainer(context: Context) {
     /** Travaux qui doivent survivre à l'écran courant (reconnexion au démarrage…). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** Partagées par l'ADB et la reconnexion autonome. */
+    val connectionPrefs = ConnectionPrefs(appContext)
+
     val adb = AdbShellBackend(
         context = appContext,
         identityStore = AdbIdentityStore(File(appContext.filesDir, "adb")),
-        prefs = ConnectionPrefs(appContext),
+        prefs = connectionPrefs,
     )
+
+    val wirelessSwitch = AndroidWirelessSwitch(appContext)
+
+    val autoReconnect = AutoReconnectController(appContext, adb, wirelessSwitch, connectionPrefs, questModel, appScope)
 
     val profileStore = ProfileStore(File(appContext.filesDir, "profiles.json"))
 

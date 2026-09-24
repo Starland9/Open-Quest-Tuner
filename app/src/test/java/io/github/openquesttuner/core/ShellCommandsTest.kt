@@ -55,6 +55,47 @@ class ShellCommandsTest {
     }
 
     @Test
+    fun `C9 et C10 ne visent que l'appli elle-meme`() {
+        assertEquals("io.github.openquesttuner", ShellCommand.APP_PACKAGE)
+        assertEquals(
+            "pm grant 'io.github.openquesttuner' android.permission.WRITE_SECURE_SETTINGS",
+            ShellCommand.grantWriteSecureSettings().text,
+        )
+        assertEquals(
+            "pm revoke 'io.github.openquesttuner' android.permission.WRITE_SECURE_SETTINGS",
+            ShellCommand.revokeWriteSecureSettings().text,
+        )
+    }
+
+    @Test
+    fun `C11 a C13 ne visent que le delai d'expiration des autorisations`() {
+        assertEquals(
+            "settings put global adb_allowed_connection_time 0",
+            ShellCommand.disableAuthorizationExpiry().text,
+        )
+        assertEquals(
+            "settings put global adb_allowed_connection_time 604800000",
+            ShellCommand.restoreAuthorizationExpiry(604_800_000L).text,
+        )
+        assertEquals(
+            "settings delete global adb_allowed_connection_time",
+            ShellCommand.resetAuthorizationExpiry().text,
+        )
+    }
+
+    @Test
+    fun `C12 n'accepte qu'un delai de 1 ms a 3650 jours`() {
+        assertEquals(315_360_000_000L, ShellCommand.MAX_KEY_LIFETIME_MS)
+        ShellCommand.restoreAuthorizationExpiry(1L)
+        ShellCommand.restoreAuthorizationExpiry(ShellCommand.MAX_KEY_LIFETIME_MS)
+        listOf(0L, -1L, ShellCommand.MAX_KEY_LIFETIME_MS + 1, Long.MIN_VALUE, Long.MAX_VALUE).forEach { bad ->
+            assertThrows("délai accepté à tort : $bad", IllegalArgumentException::class.java) {
+                ShellCommand.restoreAuthorizationExpiry(bad)
+            }
+        }
+    }
+
+    @Test
     fun `wireText ajoute le marqueur de code de sortie`() {
         val command = ShellCommand.probe()
         assertEquals(command.text + "; echo __OQT_EXIT__:\$?", command.wireText)
@@ -126,6 +167,11 @@ class ShellCommandsTest {
             add(ShellCommand.probe())
             add(ShellCommand.enableWirelessDebugging())
             add(ShellCommand.readWirelessDebugging())
+            add(ShellCommand.grantWriteSecureSettings())
+            add(ShellCommand.revokeWriteSecureSettings())
+            add(ShellCommand.disableAuthorizationExpiry())
+            add(ShellCommand.restoreAuthorizationExpiry(ShellCommand.MAX_KEY_LIFETIME_MS))
+            add(ShellCommand.resetAuthorizationExpiry())
         }
         all.forEach { command ->
             assertFalse(command.wireText, command.wireText.contains("persist."))

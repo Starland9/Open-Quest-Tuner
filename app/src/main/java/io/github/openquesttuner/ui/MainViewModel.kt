@@ -7,12 +7,19 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.openquesttuner.OqtApplication
 import io.github.openquesttuner.R
+import io.github.openquesttuner.core.AuthorizationLifetime
+import io.github.openquesttuner.core.AutoReconnectStatus
 import io.github.openquesttuner.core.ConnectionInput
 import io.github.openquesttuner.core.ConnectionState
 import io.github.openquesttuner.core.Diagnostic
+import io.github.openquesttuner.core.DisableResult
+import io.github.openquesttuner.core.EnableResult
+import io.github.openquesttuner.core.ExpiryChangeResult
+import io.github.openquesttuner.core.ExpiryChoiceStatus
 import io.github.openquesttuner.core.GameProfile
 import io.github.openquesttuner.core.QuestModel
 import io.github.openquesttuner.core.QuestProperty
+import io.github.openquesttuner.core.ReconnectIssue
 import io.github.openquesttuner.core.ThermalLevel
 import io.github.openquesttuner.core.TuneResult
 import io.github.openquesttuner.core.TuneStep
@@ -122,10 +129,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { container.adb.pair(port, code) }
     }
 
-    /** Port vide : découverte automatique (mDNS). */
+    /**
+     * Port vide : découverte automatique (mDNS). Si la reconnexion autonome n'est pas inactive,
+     * le débogage sans fil est d'abord réactivé (spec 002, FR-005).
+     */
     fun connectWireless(portText: String) {
         val port = if (portText.isBlank()) null else ConnectionInput.parsePort(portText) ?: return
-        viewModelScope.launch { container.adb.connectWireless(port) }
+        viewModelScope.launch {
+            if (port == null && autoReconnectStatus.value != AutoReconnectStatus.INACTIVE) {
+                autoReconnect.connectWireless()
+            } else {
+                container.adb.connectWireless(port)
+            }
+        }
     }
 
     private val _switchingToWireless = MutableStateFlow(false)
@@ -138,7 +154,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 when (container.adb.switchToWireless()) {
-                    WirelessSwitchResult.SWITCHED -> Unit // L'état « Connecté (sans fil) » suffit.
+                    // L'état « Connecté (sans fil) » suffit ; on propose ensuite la reconnexion autonome.
+                    WirelessSwitchResult.SWITCHED ->
+                        if (autoReconnectStatus.value == AutoReconnectStatus.INACTIVE) _autoReconnectProposal.value = true
                     WirelessSwitchResult.NOT_ACCEPTED -> showMessage(R.string.switch_not_accepted)
                     WirelessSwitchResult.WIRELESS_FAILED -> showMessage(R.string.switch_wireless_failed)
                     WirelessSwitchResult.NOT_CONNECTED -> showMessage(R.string.switch_not_connected)
@@ -155,6 +173,94 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun disconnect() {
         viewModelScope.launch { container.adb.disconnect() }
+    }
+
+    // --- Reconnexion autonome (spec 002)
+
+    private val autoReconnect = container.autoReconnect
+
+    val autoReconnectStatus: StateFlow<AutoReconnectStatus> = autoReconnect.status
+
+    val autoReconnectExperimental: Boolean = autoReconnect.experimental
+
+    /** Réactivation du débogage sans fil en cours (FR-007). */
+    val autoReconnectPreparing: StateFlow<Boolean> = autoReconnect.preparing
+
+    /** Cause du dernier échec de reconnexion autonome (FR-009). */
+    val autoReconnectIssue: StateFlow<ReconnectIssue?> = autoReconnect.lastIssue
+
+    /** Choix « autorisations sans expiration » (FR-021). */
+    val expiryStatus: StateFlow<ExpiryChoiceStatus> = autoReconnect.expiryStatus
+
+    /** Délai d'expiration des autorisations, expliqué dans la fenêtre d'activation (FR-002). */
+    val authorizationLifetime: StateFlow<AuthorizationLifetime> = autoReconnect.lifetime
+
+    private val _autoReconnectBusy = MutableStateFlow(false)
+    val autoReconnectBusy: StateFlow<Boolean> = _autoReconnectBusy.asStateFlow()
+
+    private val _autoReconnectProposal = MutableStateFlow(false)
+
+    /** Proposition après un « Passer en sans fil » réussi (FR-003). Rien n'est persisté. */
+    val autoReconnectProposal: StateFlow<Boolean> = _autoReconnectProposal.asStateFlow()
+
+    /**
+     * « Activer » après confirmation, ou « Réactiver » (FR-016 : la confirmation d'origine vaut).
+     * [neverExpire] : case « ne jamais faire expirer » cochée dans la fenêtre (FR-021).
+     */
+    fun enableAutoReconnect(neverExpire: Boolean = false) = runAutoReconnect {
+        val (result, expiry) = autoReconnect.enable(neverExpire)
+        when (result) {
+            EnableResult.ENABLED -> showMessage(R.string.auto_reconnect_enabled)
+            EnableResult.UNAVAILABLE -> showMessage(R.string.auto_reconnect_unavailable)
+            EnableResult.NOT_CONNECTED -> showMessage(R.string.auto_reconnect_not_connected)
+        }
+        expiry?.let { showExpiryMessage(on = true, it) }
+    }
+
+    /** « Désactiver » (FR-013) : sans confirmation, puisque cela réduit les droits. */
+    fun disableAutoReconnect() = runAutoReconnect {
+        when (autoReconnect.disable()) {
+            DisableResult.REVOKED -> showMessage(R.string.auto_reconnect_disabled)
+            DisableResult.REVOKE_PENDING -> showMessage(R.string.auto_reconnect_disabled_pending)
+            DisableResult.KEPT_EXTERNAL_GRANT -> showMessage(R.string.auto_reconnect_disabled_kept)
+        }
+    }
+
+    /** Choix « ne jamais faire expirer » depuis la carte : activer (confirmé) ou rétablir le délai. */
+    fun setNeverExpire(on: Boolean) = runAutoReconnect {
+        showExpiryMessage(on, autoReconnect.setNeverExpire(on))
+    }
+
+    private fun showExpiryMessage(on: Boolean, result: ExpiryChangeResult) {
+        when (result) {
+            ExpiryChangeResult.APPLIED -> showMessage(if (on) R.string.never_expire_applied else R.string.never_expire_restored)
+            ExpiryChangeResult.RESTORE_PENDING -> showMessage(R.string.never_expire_pending)
+            ExpiryChangeResult.FAILED -> showMessage(R.string.never_expire_failed)
+            ExpiryChangeResult.NOT_CONNECTED -> showMessage(R.string.auto_reconnect_not_connected)
+            // Le casque n'expire déjà pas les autorisations : le choix disparaît de l'écran.
+            ExpiryChangeResult.NOT_APPLICABLE -> Unit
+        }
+    }
+
+    /** « Se reconnecter » (FR-005). */
+    fun reconnectNow() {
+        viewModelScope.launch { autoReconnect.reconnectNow() }
+    }
+
+    fun dismissAutoReconnectProposal() {
+        _autoReconnectProposal.value = false
+    }
+
+    private fun runAutoReconnect(block: suspend () -> Unit) {
+        if (_autoReconnectBusy.value) return
+        _autoReconnectBusy.value = true
+        viewModelScope.launch {
+            try {
+                block()
+            } finally {
+                _autoReconnectBusy.value = false
+            }
+        }
     }
 
     // --- Jeux et profils (US2)

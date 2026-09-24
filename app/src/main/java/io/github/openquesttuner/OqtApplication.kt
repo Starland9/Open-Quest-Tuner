@@ -13,6 +13,8 @@ class OqtApplication : Application() {
         container = AppContainer(this)
         container.appScope.launch { container.profileStore.load() }
         // Reconnexion silencieuse avec la dernière méthode réussie, sans bloquer l'interface (FR-005).
-        container.appScope.launch { container.adb.reconnectLast() }
+        // Si la reconnexion autonome est active, elle réactive d'abord le débogage sans fil ; jamais
+        // au démarrage du casque, seulement à l'ouverture de l'appli (spec 002, FR-008).
+        container.appScope.launch { container.autoReconnect.reconnectNow() }
     }
 }

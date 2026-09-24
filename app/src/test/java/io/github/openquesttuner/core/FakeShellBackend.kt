@@ -17,6 +17,9 @@ class FakeShellBackend : ShellBackend {
     /** Préfixe de commande à partir duquel la connexion est « perdue » ; `""` : dès la première. */
     var disconnectAt: String? = null
 
+    /** Appelé avec le texte de chaque commande exécutée : simule son effet (permission accordée…). */
+    var onExec: (String) -> Unit = {}
+
     /** La dernière réponse scriptée dont le préfixe correspond l'emporte. */
     fun respond(prefix: String, result: ShellResult) {
         responses += prefix to result
@@ -30,6 +33,7 @@ class FakeShellBackend : ShellBackend {
             }
         }
         executed += command.text
+        onExec(command.text)
         return responses.lastOrNull { (prefix, _) -> command.text.startsWith(prefix) }?.second
             ?: ShellResult(exitCode = 0, output = "")
     }

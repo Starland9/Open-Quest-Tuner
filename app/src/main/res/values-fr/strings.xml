@@ -34,7 +34,7 @@
     <string name="pc_title">Première connexion (une seule fois, avec un PC)</string>
     <string name="pc_step_1">Branche le casque à un ordinateur équipé d\'ADB et lance :</string>
     <string name="pc_step_2">Débranche le câble, touche « Se connecter (via PC) », puis accepte l\'invite de débogage dans le casque (« Toujours autoriser »).</string>
-    <string name="pc_note">Une seule fois : ensuite, touche « Passer en sans fil » et le PC ne sera plus nécessaire.</string>
+    <string name="pc_note">Une seule fois : ensuite, touche « Passer en sans fil », puis active la reconnexion autonome. Le PC ne sera plus nécessaire.</string>
     <string name="connect_pc">Se connecter (via PC)</string>
     <string name="wireless_note">Certaines versions d\'Horizon OS n\'affichent pas cet écran. Dans ce cas, fais la première connexion avec un PC, puis « Passer en sans fil ».</string>
     <string name="switch_to_wireless">Passer en sans fil</string>
@@ -122,4 +122,57 @@
     <string name="diagnostic_no_active">Aucun réglage actif.</string>
     <string name="profile_active">Actif sur le casque</string>
     <string name="profile_not_applied">Non appliqué au casque</string>
+    <!-- Spec 002, US1 : reconnexion autonome -->
+    <string name="auto_reconnect_title">Reconnexion autonome</string>
+    <string name="auto_reconnect_summary">Après un redémarrage du casque, l\'appli réactive elle-même le débogage sans fil et se reconnecte, sans PC.</string>
+    <string name="auto_reconnect_status_active">Active</string>
+    <string name="auto_reconnect_status_inactive">Inactive</string>
+    <string name="auto_reconnect_enable">Activer</string>
+    <string name="auto_reconnect_reconnect">Se reconnecter</string>
+    <string name="auto_reconnect_connect_first">Connecte l\'appli pour activer cette option.</string>
+    <string name="auto_reconnect_dialog_title">Activer la reconnexion autonome ?</string>
+    <string name="auto_reconnect_proposal_title">Ne plus avoir besoin du PC ?</string>
+    <string name="auto_reconnect_dialog_body">• À chaque ouverture, l\'appli réactivera elle-même le débogage sans fil, puis s\'y connectera.\n• Pour cela, elle s\'accorde un droit système du casque, qu\'elle garde jusqu\'à ce que tu désactives l\'option ou que tu désinstalles l\'appli.\n• Elle ne s\'en sert que pour cette seule action.\n• Le casque doit être connecté à un Wi-Fi.</string>
+    <string name="auto_reconnect_dialog_confirm">Activer</string>
+    <string name="auto_reconnect_dialog_later">Plus tard</string>
+    <string name="auto_reconnect_enabled">Reconnexion autonome activée.</string>
+    <string name="auto_reconnect_unavailable">Le casque n\'a pas accordé ce droit : option indisponible sur ce casque. « Passer en sans fil » reste possible.</string>
+    <string name="auto_reconnect_not_connected">Connecte-toi d\'abord.</string>
+    <string name="auto_reconnect_preparing">Réactivation du débogage sans fil…</string>
+    <string name="auto_reconnect_preparing_hint">Si le casque te demande d\'autoriser le débogage sans fil sur ce réseau, accepte en cochant « Toujours autoriser ».</string>
+    <!-- Spec 002, US2 : causes d'échec de la reconnexion autonome -->
+    <string name="issue_debugging_disabled">Débogage désactivé sur le casque : réactive le mode développeur, puis rouvre l\'appli.</string>
+    <string name="issue_no_wifi">Pas de Wi-Fi : connecte le casque à un réseau Wi-Fi. L\'appli réessaiera seule.</string>
+    <string name="issue_right_lost">L\'appli ne peut plus réactiver le débogage sans fil : connecte-la via PC, puis touche « Réactiver ».</string>
+    <string name="issue_network_not_allowed">Le débogage sans fil ne s\'est pas activé. Si le casque a affiché « autoriser sur ce réseau », touche « Se reconnecter » et accepte en cochant « Toujours autoriser ». Sinon, réessaie ou passe par le PC.</string>
+    <string name="issue_authorization_lost">Le casque ne reconnaît plus l\'autorisation de l\'appli : refais une fois l\'étape « via PC ».</string>
+    <string name="issue_wireless_not_started">Le débogage sans fil est actif, mais l\'appli ne le trouve pas : réessaie, ou passe par le PC.</string>
+    <string name="issue_unknown">Reconnexion impossible : réessaie, ou passe par le PC.</string>
+    <string name="auto_reconnect_status_needs_reactivation">À réactiver</string>
+    <string name="auto_reconnect_needs_reactivation_hint">L\'appli a perdu le droit de réactiver le débogage sans fil. Connecte-la, via PC si besoin, puis touche « Réactiver ».</string>
+    <string name="auto_reconnect_reactivate">Réactiver</string>
+    <!-- Spec 002, US4 : autorisations sans expiration -->
+    <plurals name="auto_reconnect_lifetime_days">
+        <item quantity="one">Sur ce casque, l\'autorisation de débogage expire après %1$d jour sans connexion via PC : il faudra alors refaire une fois l\'étape PC.</item>
+        <item quantity="many">Sur ce casque, l\'autorisation de débogage expire après %1$d jours sans connexion via PC : il faudra alors refaire une fois l\'étape PC.</item>
+        <item quantity="other">Sur ce casque, l\'autorisation de débogage expire après %1$d jours sans connexion via PC : il faudra alors refaire une fois l\'étape PC.</item>
+    </plurals>
+    <string name="auto_reconnect_lifetime_less_than_day">Sur ce casque, l\'autorisation de débogage expire en moins d\'un jour sans connexion via PC : il faudra alors refaire une fois l\'étape PC.</string>
+    <string name="never_expire_label">Ne jamais faire expirer les autorisations de débogage</string>
+    <string name="never_expire_consequences">• Vaut pour toutes les autorisations de débogage du casque, celle du PC comprise.\n• Reste en place après un redémarrage.\n• Reste en place si tu désinstalles l\'appli sans l\'avoir désactivé.\n• Tu peux revenir au délai d\'origine à tout moment.</string>
+    <string name="never_expire_dialog_title">Ne jamais faire expirer les autorisations de débogage ?</string>
+    <string name="never_expire_status_on">Autorisations sans expiration : actif</string>
+    <string name="never_expire_status_off">Autorisations sans expiration : inactif</string>
+    <string name="never_expire_status_pending">Autorisations sans expiration : délai d\'origine rétabli à la prochaine connexion</string>
+    <string name="never_expire_enable">Activer</string>
+    <string name="never_expire_disable">Rétablir le délai</string>
+    <string name="never_expire_applied">Les autorisations de débogage n\'expirent plus.</string>
+    <string name="never_expire_restored">Délai d\'origine rétabli.</string>
+    <string name="never_expire_pending">Le délai d\'origine sera rétabli à la prochaine connexion.</string>
+    <string name="never_expire_failed">Le délai des autorisations n\'a pas pu être modifié. Réessaie plus tard.</string>
+    <!-- Spec 002, US3 : désactiver la reconnexion autonome -->
+    <string name="auto_reconnect_disable">Désactiver</string>
+    <string name="auto_reconnect_disabled">Reconnexion autonome désactivée, droit retiré.</string>
+    <string name="auto_reconnect_disabled_pending">Reconnexion autonome désactivée. Le droit sera retiré à la prochaine connexion.</string>
+    <string name="auto_reconnect_disabled_kept">Reconnexion autonome désactivée. Le droit avait été accordé en dehors de l\'appli : il reste en place. Pour le retirer depuis un PC : adb shell pm revoke io.github.openquesttuner android.permission.WRITE_SECURE_SETTINGS</string>
 </resources>

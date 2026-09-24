@@ -50,7 +50,10 @@ headsets use values from Meta's documentation, and their settings are marked *Ex
 - **Safe by design**:
   - the app can only write a closed list of 7 properties, with values picked from menus, so
     there is no free-form shell;
-  - nothing it writes survives a restart;
+  - performance settings never survive a restart;
+  - the only lasting changes are opt-in, explained before you confirm, and undone in one tap:
+    the `WRITE_SECURE_SETTINGS` permission used by **Auto-reconnect**, and the optional *Never
+    expire debugging authorizations* choice (see below);
   - the ADB key never leaves the app's private storage.
 
 ## Requirements
@@ -86,13 +89,46 @@ the first authorization goes through a PC. After that, no PC is needed.
 2. **Switch to wireless.** Tap **Switch to wireless** and accept Horizon OS's "allow wireless
    debugging on this network" window. The key you authorized in step 1 is reused: no pairing
    code is needed.
-3. **From then on**, the app reconnects by itself when it starts.
-   - After a restart, Horizon OS turns wireless debugging off. On our Quest 3, port 5555 stayed
-     open, so the app reconnected through it: just tap **Switch to wireless** again.
-   - If port 5555 is closed too, repeat step 1.
+3. **Auto-reconnect** (optional, *Experimental*). After a restart, Horizon OS turns wireless
+   debugging off. Once you switch to wireless, the app offers **Auto-reconnect**; you can also
+   turn it on later in **Connection & tools**. With it on:
+   - each time the app opens after a restart, it turns wireless debugging back on by itself and
+     reconnects, without a PC. The headset must be on Wi-Fi. If Horizon OS asks to allow wireless
+     debugging on this network, accept with *Always allow*;
+   - to do so, the app grants itself one system permission, `WRITE_SECURE_SETTINGS`, with a single
+     shell command (`pm grant`), and uses it for that one action only;
+   - it keeps the permission until you tap **Turn off**, which removes it, or uninstall the app.
+
+   Without Auto-reconnect, the app still tries to reconnect when it starts. On our Quest 3, port
+   5555 stayed open after a restart, so the app reconnected through it: just tap **Switch to
+   wireless** again. If port 5555 is closed too, repeat step 1.
 
 If your headset does show Android's "Wireless debugging" screen, the pairing-code card is a
 fallback that works without a PC.
+
+### Never expire debugging authorizations
+
+Android forgets an authorized key after a while without a connection from the PC: 7 days by
+default (`adb_allowed_connection_time`). Our Quest 3 is set to never expire. If your headset does
+expire keys, the Auto-reconnect window says after how many days, and offers an unchecked **Never
+expire debugging authorizations** box. This choice:
+
+- applies to every debugging authorization of the headset, the PC's included;
+- stays in place after a restart;
+- stays in place if you uninstall the app without turning it off first;
+- can be undone at any time with **Restore the delay**, or by turning Auto-reconnect off: the app
+  puts back the original value, unless another tool changed it in the meantime.
+
+To undo everything from a PC, for instance after uninstalling the app with the choice on:
+
+```bash
+# Back to the system default (7 days)...
+adb shell settings delete global adb_allowed_connection_time
+# ...or to a given delay, in milliseconds
+adb shell settings put global adb_allowed_connection_time 604800000
+# Remove the permission while keeping the app (uninstalling removes it anyway)
+adb shell pm revoke io.github.openquesttuner android.permission.WRITE_SECURE_SETTINGS
+```
 
 ## Build
 
@@ -119,6 +155,8 @@ connection policy, thermal levels…) is covered by JVM tests that run without a
 - [specs/001-game-profiles-mvp/](specs/001-game-profiles-mvp/) contains the specification, plan,
   research, contracts and tasks of this version. It was written with
   [Spec Kit](https://github.com/github/spec-kit), in French.
+- [specs/002-standalone-reconnect/](specs/002-standalone-reconnect/) does the same for
+  Auto-reconnect and the *Never expire* choice.
 - [.specify/memory/constitution.md](.specify/memory/constitution.md) holds the project's
   principles: headset safety first, clean-room and privacy, verified on a real headset,
   testable core, simplicity.

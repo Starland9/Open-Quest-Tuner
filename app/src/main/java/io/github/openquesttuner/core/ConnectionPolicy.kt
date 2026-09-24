@@ -14,8 +14,15 @@ sealed interface ConnectTarget {
     data class Port(val port: Int) : ConnectTarget
 }
 
-/** Une tentative de reconnexion : la méthode à afficher et la cible à essayer. */
-data class ReconnectAttempt(val method: ConnectionMethod, val target: ConnectTarget)
+/**
+ * Une tentative de reconnexion : la méthode à afficher et la cible à essayer. [prepareWireless] :
+ * réactiver d'abord le débogage sans fil (reconnexion autonome, spec 002).
+ */
+data class ReconnectAttempt(
+    val method: ConnectionMethod,
+    val target: ConnectTarget,
+    val prepareWireless: Boolean = false,
+)
 
 /** Issue du passage en sans fil depuis une connexion via PC (FR-001). */
 enum class WirelessSwitchResult { SWITCHED, NOT_ACCEPTED, WIRELESS_FAILED, NOT_CONNECTED }
@@ -85,10 +92,17 @@ object ConnectionPolicy {
      * alors que le débogage sans fil est coupé, et une même clé est acceptée par les deux
      * (docs/compatibility.md). En sans fil, le port TLS change à chaque activation : la découverte
      * mDNS passe avant le port enregistré.
+     *
+     * [prepareWireless] marque la première tentative sans fil : la réactivation a lieu quand vient
+     * le tour du sans-fil, sans changer l'ordre (spec 002, FR-006).
      */
-    fun reconnectAttempts(lastMethod: ConnectionMethod?, lastWirelessPort: Int?): List<ReconnectAttempt> {
+    fun reconnectAttempts(
+        lastMethod: ConnectionMethod?,
+        lastWirelessPort: Int?,
+        prepareWireless: Boolean = false,
+    ): List<ReconnectAttempt> {
         val wireless = listOfNotNull(
-            ReconnectAttempt(ConnectionMethod.WIRELESS, ConnectTarget.Discover),
+            ReconnectAttempt(ConnectionMethod.WIRELESS, ConnectTarget.Discover, prepareWireless),
             lastWirelessPort?.let { ReconnectAttempt(ConnectionMethod.WIRELESS, ConnectTarget.Port(it)) },
         )
         val pc = listOf(ReconnectAttempt(ConnectionMethod.PC, ConnectTarget.Port(PC_PORT)))

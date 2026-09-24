@@ -34,6 +34,10 @@
 - Validation passée à la première itération (2026-09-24). Spec amendée le même jour, après la
   recherche du plan (User Story 4, FR-021 à FR-025, FR-015 assouplie, SC-007 élargi, SC-009 et
   SC-010 ajoutés), puis revalidée : tous les points passent toujours.
+- `/speckit-analyze` du 2026-09-24 : les 14 points relevés ont été corrigés. D1 (C12 bornée),
+  E1 (préparation visible), F1, F2, C1 à C5, B1, B2, F3, A1 et E2 portaient sur la spec, le
+  plan, le data-model, les contrats et les tâches. Tous les points de la checklist passent
+  toujours.
 - Le droit système et la commande qui l'accorde ne sont pas nommés dans la spec. Les détails
   techniques sont dans research.md (R9) du MVP, et seront repris dans le plan.
 - Choix faits par défaut, sans marqueur de clarification (voir Assumptions) :

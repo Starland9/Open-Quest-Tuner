@@ -23,8 +23,8 @@ C'est la méthode de Shizuku et de shizuku4quest, préparée dans la recherche d
 L'approche technique est détaillée dans [research.md](research.md) :
 - la décision (faut-il réactiver ? quelle cause afficher ?) est prise dans le cœur pur, par
   `AutoReconnectPolicy`, testée en JVM derrière une petite interface `WirelessDebuggingSwitch` ;
-- la couche Android se limite à trois lectures (permission, Wi-Fi, réglages de débogage) et à
-  une seule écriture de réglage système ;
+- la couche Android se limite à cinq lectures (permission, Wi-Fi, débogage, débogage sans fil,
+  délai d'expiration) et à une seule écriture de réglage système ;
 - deux commandes s'ajoutent à la liste fermée du shell : C9 accorde la permission à l'appli
   elle-même, C10 la retire.
 
@@ -53,8 +53,8 @@ changé (research.md R6).
 libadb-android 3.1.1, conscrypt-android 2.5.3, bcpkix-jdk15to18 1.81. APIs Android du SDK :
 `Settings.Global`, `ConnectivityManager`, `Context.checkSelfPermission`.
 
-**Storage**: quatre clés de plus dans les SharedPreferences `connection` (`ConnectionPrefs`) :
-- `auto_reconnect` et `revoke_pending` (booléens) ;
+**Storage**: cinq clés de plus dans les SharedPreferences `connection` (`ConnectionPrefs`) :
+- `auto_reconnect`, `right_granted_by_app` et `revoke_pending` (booléens) ;
 - `expiry_original` (chaîne ou absente) et `expiry_restore_pending` (booléen).
 
 Rien d'autre n'est persisté.
@@ -86,7 +86,7 @@ minSdk 29, compileSdk 35, targetSdk 34, inchangés.
 - cibles d'interaction d'au moins 48 dp, textes en français et en anglais (FR-020).
 
 **Scale/Scope**:
-- 1 option, 3 états affichés, 6 causes d'échec ;
+- 1 option, 3 états affichés, 7 causes d'échec (dont « indéterminée ») ;
 - 5 commandes shell (C9 à C13) et 1 écriture de réglage par l'API ;
 - 1 carte ajoutée à l'écran Connexion et outils, et 1 fenêtre de confirmation ;
 - une vingtaine de textes.
@@ -100,15 +100,16 @@ minSdk 29, compileSdk 35, targetSdk 34, inchangés.
 | I. Sécurité (NON NÉGOCIABLE) | Commandes construites uniquement à partir de valeurs validées | C9 et C10 sont deux fabriques sans paramètre de `ShellCommand`. Le paquet visé est une constante du cœur (`io.github.openquesttuner`), et un test la compare à l'`applicationId`. L'appli ne peut donc accorder ni retirer une permission qu'à elle-même, et seulement `WRITE_SECURE_SETTINGS`. | ✅ |
 | I | Pas de console shell libre | Rien de nouveau : aucune saisie n'est ajoutée. | ✅ |
 | I | Clé ADB privée | Inchangé : la reconnexion réutilise la clé existante, qui ne quitte jamais `filesDir/adb/`. | ✅ |
-| I | Réversible, rien qui survive au redémarrage | `adb_wifi_enabled` revient à 0 à chaque redémarrage (constaté). Deux changements survivent **par construction** : la permission, et, sur choix explicite, le délai d'expiration à « jamais ». Chacun se défait en un geste (FR-013 avec C10 ; FR-023 avec C12 ou C13, qui rétablissent la valeur d'origine retenue). Seule limite : le délai reste à « jamais » si l'appli est désinstallée sans avoir désactivé le choix, ce que l'explication dit (FR-022). Voir Complexity Tracking. | ✅ justifié |
-| I | Pas d'accès détourné au système | La permission autoriserait l'écriture de n'importe quel réglage sécurisé. Le code n'en écrit qu'un par l'API, dans une seule classe, et un test JVM échoue si une autre écriture de `Settings` apparaît dans les sources (FR-015). C11 à C13 ne visent qu'une clé, écrite en constante, avec pour seul paramètre un entier positif (C12). | ✅ |
+| I | Réversible, rien qui survive au redémarrage | `adb_wifi_enabled` revient à 0 à chaque redémarrage (constaté). Deux changements survivent **par construction** : la permission, et, sur choix explicite, le délai d'expiration à « jamais ». Chacun se défait en un geste (FR-013 avec C10 ; FR-023 avec C12 ou C13, qui rétablissent la valeur d'origine retenue). Seule limite : le délai reste à « jamais » si l'appli est désinstallée sans avoir désactivé le choix, ce que l'explication dit (FR-022). Conforme à la règle du principe I v1.1.0 sur les changements durables de l'accès au débogage. (1) Choix explicite : FR-002, FR-016, FR-021. (2) Un geste pour défaire : FR-013, FR-023. (3) Valeur d'origine retenue, et seul ce que l'appli a changé est rétabli : `right_granted_by_app` et `expiry_original` dans [data-model.md](data-model.md). | ✅ |
+| I | Pas d'accès détourné au système | La permission autoriserait l'écriture de n'importe quel réglage sécurisé. Le code n'en écrit qu'un par l'API, dans une seule classe, et un test JVM échoue si une autre écriture de `Settings` apparaît dans les sources (FR-015). C11 à C13 ne visent qu'une clé, écrite en constante, avec pour seul paramètre un entier borné, de 1 ms à 3 650 jours (C12). | ✅ |
 | II. Libre, clean-room, vie privée | Hors ligne, sans télémétrie, licences | Aucune dépendance ni communication réseau nouvelle. La méthode vient de projets open source (Shizuku, shizuku4quest) et de la doc AOSP, sans rien de QGO. | ✅ |
 | III. Vérifié sur casque réel | Tableau de compatibilité, « expérimental » | L'option est marquée « expérimental » tant qu'elle n'est pas vérifiée pour le modèle détecté (FR-018). Le quickstart ajoute au tableau trois essais : octroi de la permission, persistance après redémarrage, reconnexion. | ✅ |
 | IV. Cœur testable sans casque | Cœur pur, `ShellBackend`, tests JVM | Décisions dans `core/AutoReconnectPolicy.kt`, sans import Android (déjà vérifié par `CoreArchitectureTest`). Les lectures et l'écriture Android passent par l'interface `WirelessDebuggingSwitch`, simulée dans les tests. C9 et C10 passent par `ShellBackend`. | ✅ |
 | V. Simplicité et UX VR | Un module, pas d'abstraction spéculative, 48 dp, pas de PC après la configuration | Aucun module ni dépendance ajouté. `WirelessDebuggingSwitch` n'est pas spéculative : sans elle, la logique de reconnexion ne serait pas testable en JVM (principe IV). Cette fonctionnalité réalise la dernière exigence du principe V : plus de PC après la première configuration. | ✅ |
 | Workflow | `test` et `assembleDebug` verts ; nouvelles commandes au contrat | C9 à C13 sont ajoutées au contrat des commandes ([contracts/shell-commands.md](contracts/shell-commands.md), repris dans celui du MVP). FR-026 du MVP porte une note d'exception qui renvoie à FR-021 à FR-023. | ✅ |
 
-**Résultat** : aucune violation bloquante. Un écart assumé est consigné dans Complexity Tracking.
+**Résultat** : aucune violation. Les deux changements durables (permission, délai d'expiration)
+relèvent du principe I v1.1.0, amendé le 2026-09-24 à l'occasion de cette fonctionnalité.
 
 **Re-check après la phase 1** : le design ne fait que détailler ces choix.
 - [data-model.md](data-model.md) ajoute deux booléens persistés et deux énumérations.
@@ -151,25 +152,30 @@ app/src/main/
 │   ├── OqtApplication.kt                  # ~ Reconnexion au démarrage via le contrôleur
 │   ├── AppContainer.kt                    # ~ Crée le switch et le contrôleur, surveille le Wi-Fi
 │   ├── core/
-│   │   ├── AutoReconnectPolicy.kt         # + Statut, causes, préparation du sans-fil (pur)
+│   │   ├── AutoReconnectPolicy.kt         # + Statut, causes, préparation du sans-fil, boucle de reconnexion (pur)
+│   │   ├── AutoReconnectManager.kt        # + Séquences activer, désactiver, choix d'expiration, opérations en attente (pur)
+│   │   ├── AutoReconnectStore.kt          # + Interface des 5 préférences (implémentée par ConnectionPrefs)
+│   │   ├── ExpiryChoice.kt                # + Durée de vie de l'autorisation, statut du choix, commande de rétablissement
 │   │   ├── WirelessDebuggingSwitch.kt     # + Interface vers les lectures et l'écriture Android
 │   │   ├── ShellCommands.kt               # ~ C9/C10 permission, C11/C12/C13 délai d'expiration
 │   │   ├── ConnectionPolicy.kt            # ~ Tentatives marquées « préparer le sans-fil d'abord »
 │   │   └── QuestModel.kt                  # ~ autoReconnectVerified par modèle
 │   ├── adb/
 │   │   ├── AndroidWirelessSwitch.kt       # + Implémentation : Settings.Global, ConnectivityManager
-│   │   ├── AutoReconnectController.kt     # + Activer, désactiver, choix d'expiration, opérations en attente, Wi-Fi, statut
+│   │   ├── AutoReconnectController.kt     # + Câblage Android : reconnexion au démarrage, Wi-Fi, états exposés (StateFlow)
 │   │   ├── AdbShellBackend.kt             # ~ reconnectLast() prépare le sans-fil et rend la cause
-│   │   └── ConnectionPrefs.kt             # ~ auto_reconnect, revoke_pending, expiry_original, expiry_restore_pending
+│   │   └── ConnectionPrefs.kt             # ~ auto_reconnect, right_granted_by_app, revoke_pending, expiry_original, expiry_restore_pending
 │   └── ui/
 │       ├── MainViewModel.kt               # ~ Statut, cause, activer, désactiver, proposition (FR-003)
 │       ├── ConnectionScreen.kt            # ~ Carte « Reconnexion autonome », cause sous « Déconnecté »
 │       └── components/ConnectionBadge.kt  # ~ Textes des causes (ReconnectIssue)
 └── res/values/strings.xml, values-fr/strings.xml   # ~ Nouveaux textes FR et EN, étapes PC révisées
 app/src/test/java/io/github/openquesttuner/
-├── core/AutoReconnectPolicyTest.kt        # + Statut, chaque cause, attente de 60 s en temps virtuel
+├── core/AutoReconnectPolicyTest.kt        # + Statut, chaque cause, attente de 60 s en temps virtuel, boucle
+├── core/AutoReconnectManagerTest.kt       # + Séquences C9 à C13, opérations en attente, droit accordé hors appli
 ├── core/FakeWirelessDebuggingSwitch.kt    # + Faux switch
-├── core/ShellCommandsTest.kt              # ~ Texte exact de C9 à C13, C12 refuse ms ≤ 0, pas de persist.
+├── core/InMemoryAutoReconnectStore.kt     # + Faux stockage
+├── core/ShellCommandsTest.kt              # ~ Texte exact de C9 à C13, C12 refuse les valeurs hors de 1 ms à 3 650 jours, pas de persist.
 ├── core/ExpiryChoiceTest.kt               # + Statut du choix, « ne rétablir que si 0 », valeur "default"
 ├── core/ConnectionPolicyTest.kt           # ~ Ordre des tentatives avec l'option active
 ├── AppPackageTest.kt                      # + Constante du cœur = applicationId du build
@@ -177,20 +183,18 @@ app/src/test/java/io/github/openquesttuner/
 ```
 
 **Structure Decision**: même structure que le MVP : un module `app`, cœur pur dans `core/`,
-couche Android mince dans `adb/`. La logique d'activation et de désactivation est dans un nouveau
-`AutoReconnectController`, pour ne pas alourdir `AdbShellBackend` (258 lignes). Celui-ci ne gagne
-qu'une étape dans `reconnectLast()`.
+couche Android mince dans `adb/`. Les séquences d'activation, de désactivation et d'expiration
+sont des règles métier. Elles vont donc dans le cœur (`AutoReconnectManager`), testées en JVM
+avec `FakeShellBackend`, un faux switch et un stockage en mémoire (principe IV). Ce n'est pas une
+abstraction spéculative : `AutoReconnectStore` n'existe que pour ces tests. Côté Android,
+`AutoReconnectController` ne fait que le câblage. `AdbShellBackend` (258 lignes) ne gagne qu'un
+paramètre dans `reconnectLast()`, et `connect()` rend la cause d'échec au lieu d'un booléen.
 
 ## Complexity Tracking
 
-Aucune violation de la constitution. Un écart est consigné par transparence :
+Aucune violation de la constitution v1.1.0 : section vide.
 
-| Écart | Pourquoi il est nécessaire | Alternative plus simple écartée, et pourquoi |
-|---|---|---|
-| Une permission système (`WRITE_SECURE_SETTINGS`) reste accordée à l'appli après un redémarrage. Le principe I veut que « un redémarrage du casque efface tout ». | C'est le seul moyen, sans PC, de rallumer le débogage sans fil après un redémarrage. La phrase du principe I vise les réglages de performance (`debug.oculus.*`), qui restent effacés au redémarrage. | Écrire `persist.adb.tcp.port` pour garder le port 5555 ouvert : interdit par le principe I (`persist.*`), et le port 5555 n'a aucun chiffrement. Réactiver le sans-fil depuis le shell : impossible, puisque c'est justement la connexion qui manque après le redémarrage. |
-| Sur choix explicite, le délai d'expiration des autorisations de débogage (`adb_allowed_connection_time`) passe à « jamais » et le reste après un redémarrage. Il touche toutes les clés du casque, celle du PC comprise. | Une connexion sans fil ne prolonge pas une autorisation (research.md R6). Sans ce choix, un casque à 7 jours oblige à repasser par le PC chaque semaine. Décision de l'utilisateur, le 2026-09-24. | Ne rien faire et prévenir : c'était le plan initial, mais l'utilisateur l'a jugé insuffisant. Se reconnecter régulièrement par le port 5555 pour prolonger la clé : il faudrait rouvrir ce port non chiffré. |
-
-Proposition : un amendement MINOR du principe I pourrait autoriser explicitement ces changements
-durables de l'accès au débogage, à trois conditions : un choix explicite, un retour en arrière en
-un geste, et une valeur d'origine retenue. Il est à lancer par l'utilisateur
-(`/speckit-constitution`), hors de ce plan.
+Les deux changements durables d'abord consignés ici comme écarts relèvent désormais de la règle
+du principe I sur les changements durables de l'accès au débogage : la permission
+`WRITE_SECURE_SETTINGS`, et le délai d'expiration à « jamais ». Les alternatives écartées sont
+dans [research.md](research.md), R1 et R6.

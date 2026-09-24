@@ -199,6 +199,46 @@ class ConnectionPolicyTest {
     @Test
     fun `aucune methode connue, aucune tentative`() {
         assertEquals(emptyList<ReconnectAttempt>(), ConnectionPolicy.reconnectAttempts(null, 37000))
+        assertEquals(emptyList<ReconnectAttempt>(), ConnectionPolicy.reconnectAttempts(null, 37000, prepareWireless = true))
+    }
+
+    // --- reconnectAttempts avec la reconnexion autonome (spec 002, FR-006)
+
+    @Test
+    fun `seule la premiere tentative sans fil est marquee, apres le dernier sans fil`() {
+        val attempts = ConnectionPolicy.reconnectAttempts(ConnectionMethod.WIRELESS, 37000, prepareWireless = true)
+        assertEquals(
+            listOf(
+                ReconnectAttempt(ConnectionMethod.WIRELESS, ConnectTarget.Discover, prepareWireless = true),
+                attempt(ConnectionMethod.WIRELESS, ConnectTarget.Port(37000)),
+                attempt(ConnectionMethod.PC, ConnectTarget.Port(5555)),
+            ),
+            attempts,
+        )
+    }
+
+    @Test
+    fun `seule la premiere tentative sans fil est marquee, apres le dernier via PC`() {
+        val attempts = ConnectionPolicy.reconnectAttempts(ConnectionMethod.PC, 37000, prepareWireless = true)
+        assertEquals(
+            listOf(
+                attempt(ConnectionMethod.PC, ConnectTarget.Port(5555)),
+                ReconnectAttempt(ConnectionMethod.WIRELESS, ConnectTarget.Discover, prepareWireless = true),
+                attempt(ConnectionMethod.WIRELESS, ConnectTarget.Port(37000)),
+            ),
+            attempts,
+        )
+    }
+
+    @Test
+    fun `sans reconnexion autonome, aucune tentative n'est marquee`() {
+        ConnectionMethod.entries.forEach { method ->
+            assertEquals(
+                ConnectionPolicy.reconnectAttempts(method, 37000),
+                ConnectionPolicy.reconnectAttempts(method, 37000, prepareWireless = false),
+            )
+            assertEquals(false, ConnectionPolicy.reconnectAttempts(method, 37000).any { it.prepareWireless })
+        }
     }
 
     // --- withRetries : réponses perdues par libadb (research.md R3)

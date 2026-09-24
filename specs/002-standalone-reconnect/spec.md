@@ -32,8 +32,8 @@ doit être utilisable sans PC).
 2. redémarrer le casque ;
 3. ouvrir l'appli : l'état passe à « Connecté (sans fil) » sans aucune action et sans PC.
 
-Sur le Quest 3 de test, le port réseau reste ouvert après un redémarrage : l'essai vérifie donc que
-la méthode affichée est bien « sans fil », et non « via PC ».
+Sur le Quest 3 de test, le port réseau est parfois resté ouvert après un redémarrage : l'essai
+vérifie donc que la méthode affichée est bien « sans fil », et non « via PC ».
 
 **Acceptance Scenarios**:
 
@@ -108,8 +108,8 @@ ouvrir l'appli : le débogage sans fil n'a pas été réactivé et l'appli ne d�
 **Acceptance Scenarios**:
 
 1. **Given** l'option active et l'appli connectée, **When** l'utilisateur la désactive, **Then**
-   l'appli cesse toute réactivation, renonce au droit obtenu et le confirme. La connexion en cours
-   n'est pas coupée.
+   l'appli cesse toute réactivation, renonce au droit qu'elle avait elle-même obtenu et le
+   confirme. La connexion en cours n'est pas coupée.
 2. **Given** l'option active et l'appli déconnectée, **When** l'utilisateur la désactive,
    **Then** l'appli cesse aussitôt toute réactivation, et indique qu'elle renoncera au droit à la
    prochaine connexion.
@@ -167,6 +167,10 @@ délai redevient 7 jours.
 - **Changement de point d'accès sur un même réseau** : la fenêtre « autoriser sur ce réseau » peut
   réapparaître (constaté après une mise en veille). Tant qu'elle est ouverte, aucune appli ne se
   lance : l'appli explique qu'il faut l'accepter.
+- **Réseau oublié au redémarrage** : sur Horizon OS (Quest 3, vros 207, constaté le 2026-09-24),
+  la fenêtre « autoriser sur ce réseau » réapparaît à chaque redémarrage, même après « Toujours
+  autoriser ». L'appli patiente jusqu'à l'acceptation (FR-007) : la seule action reste ce geste
+  dans le casque, sans PC.
 - **Débogage sans fil coupé par un autre moyen pendant que l'appli est ouverte** : la connexion
   est perdue. Tant que l'option est active, l'appli le réactive à la prochaine tentative de
   connexion ; pour l'éviter, l'utilisateur désactive l'option.
@@ -174,11 +178,14 @@ délai redevient 7 jours.
   indique que l'option n'est pas disponible sur ce casque. Le parcours actuel (« Passer en sans
   fil » après une connexion via PC) reste disponible.
 - **Droit accordé, mais le débogage sans fil ne s'active pas** : au bout de 60 secondes, l'appli
-  abandonne et affiche la cause « le casque n'a pas activé le débogage sans fil ».
+  abandonne. L'appli ne peut pas distinguer ce cas d'un réseau non autorisé, puisque dans les
+  deux cas le réglage reste coupé (research.md R3). Elle affiche donc une seule cause, qui couvre
+  les deux (FR-009).
 - **Mise à jour de l'appli** : l'option, le droit et l'autorisation de débogage sont conservés.
 - **Désinstallation de l'appli** : l'option, le droit et l'autorisation de l'appli sont perdus. À
   la réinstallation, tout recommence par la première autorisation via PC.
-- **Mode développeur désactivé** : aucune connexion n'est possible ; l'appli l'indique.
+- **Mode développeur désactivé** : aucune connexion n'est possible. Si l'option est active,
+  l'appli l'indique (FR-009). Sinon, elle affiche « Déconnecté », comme aujourd'hui.
 - **Option désactivée hors connexion, puis appli désinstallée avant toute reconnexion** : le droit
   disparaît avec la désinstallation, rien ne subsiste.
 - **Appli désinstallée alors que « Ne jamais faire expirer » est actif** : le réglage reste en
@@ -189,6 +196,10 @@ délai redevient 7 jours.
   touche pas et oublie la valeur retenue (FR-023).
 - **Autorisation déjà expirée avant l'activation du choix** : il est trop tard pour elle, il faut
   refaire une fois l'étape PC. Le choix ne vaut que pour la suite.
+- **Droit déjà accordé avant l'activation** (à la main depuis un PC, par exemple) : l'appli s'en
+  sert, mais ne le retire pas quand l'option est désactivée. Elle ne défait que ce qu'elle a
+  elle-même changé (constitution, principe I). Elle l'indique et explique comment le retirer
+  depuis un PC.
 
 ## Requirements *(mandatory)*
 
@@ -204,8 +215,8 @@ délai redevient 7 jours.
     de l'option ou jusqu'à sa désinstallation ;
   - qu'elle n'utilise ce droit que pour cette seule action ;
   - qu'un réseau Wi-Fi est nécessaire ;
-  - si les autorisations de débogage expirent sur ce casque, au bout de combien de jours sans
-    connexion via PC (User Story 4).
+  - si les autorisations de débogage expirent sur ce casque : le délai, et le choix de la User
+    Story 4 (voir FR-021 et FR-022).
 
   L'option n'est activée qu'après une confirmation explicite de l'utilisateur.
 - **FR-003**: Après un « Passer en sans fil » réussi, si l'option est inactive, l'appli DOIT
@@ -215,10 +226,14 @@ délai redevient 7 jours.
 
 **Reconnexion**
 
-- **FR-005**: Quand l'option est active et que l'appli n'est pas connectée, au démarrage de
-  l'appli comme à chaque connexion demandée par l'utilisateur, l'appli DOIT réactiver elle-même
-  le débogage sans fil s'il est coupé, puis s'y connecter avec l'autorisation qu'elle possède
-  déjà. Cela se fait sans PC, sans code d'appairage, et sans autre action de l'utilisateur que
+- **FR-005**: Quand l'option est active et que l'appli n'est pas connectée, l'appli DOIT
+  réactiver elle-même le débogage sans fil s'il est coupé, puis s'y connecter avec
+  l'autorisation qu'elle possède déjà. Elle le fait :
+  - au démarrage de l'appli ;
+  - quand l'utilisateur touche « Se reconnecter » ;
+  - quand l'utilisateur demande une connexion sans fil sans saisir de port.
+
+  La connexion via PC, elle, n'en a pas besoin. Cela se fait sans PC, sans code d'appairage, et sans autre action de l'utilisateur que
   l'éventuelle fenêtre d'Horizon OS.
 - **FR-006**: L'ordre de reconnexion actuel DOIT être conservé : la dernière méthode réussie
   d'abord, puis l'autre. La réactivation de FR-005 a lieu quand vient le tour de la méthode sans
@@ -233,12 +248,15 @@ délai redevient 7 jours.
   probable et de l'étape suivante, sans message d'erreur alarmant. L'appli distingue au moins les
   causes suivantes :
   - le casque n'est pas connecté à un Wi-Fi ;
-  - le réseau n'a pas été autorisé (fenêtre refusée ou ignorée) ;
+  - le débogage sans fil ne s'est pas activé dans les 60 secondes : réseau non autorisé
+    (fenêtre refusée ou ignorée), ou casque qui ne l'active pas. Les deux cas sont
+    indiscernables ;
   - le casque ne reconnaît plus l'autorisation de l'appli : il faut refaire une fois
     l'autorisation via PC ;
   - le droit de réactivation a été perdu : l'option passe à « à réactiver » ;
-  - le casque n'a pas activé le débogage sans fil, ou cause indéterminée : l'appli propose de
-    réessayer, ou de passer par le PC.
+  - le débogage sans fil est actif mais introuvable, ou cause indéterminée : l'appli propose de
+    réessayer, ou de passer par le PC ;
+  - le débogage est désactivé sur le casque (mode développeur).
 - **FR-010**: Tant que l'appli est ouverte et déconnectée faute de Wi-Fi, elle DOIT retenter la
   reconnexion d'elle-même dès que le casque rejoint un réseau Wi-Fi.
 
@@ -249,8 +267,9 @@ délai redevient 7 jours.
 - **FR-012**: L'état de l'option DOIT être conservé après la fermeture de l'appli, un redémarrage
   du casque et une mise à jour de l'appli.
 - **FR-013**: L'utilisateur DOIT pouvoir désactiver l'option en un geste. L'appli cesse aussitôt
-  toute réactivation. Si elle est connectée, elle renonce aussi au droit obtenu ; sinon, elle y
-  renonce à la prochaine connexion et l'indique.
+  toute réactivation. Si elle est connectée, elle renonce aussi au droit qu'elle a elle-même
+  obtenu ; sinon, elle y renonce à la prochaine connexion et l'indique. Un droit accordé hors de
+  l'appli est laissé en place, et l'appli le dit (constitution, principe I, condition 3).
 - **FR-014**: Désactiver l'option NE DOIT couper ni la connexion en cours, ni le débogage sans fil
   déjà actif.
 
@@ -261,7 +280,9 @@ délai redevient 7 jours.
   autorisations de débogage, sur le choix explicite de FR-021, et seulement vers « jamais » ou
   vers sa valeur d'origine. Elle ne touche jamais à la liste des appareils autorisés.
 - **FR-016**: L'appli NE DOIT obtenir ce droit qu'après la confirmation de FR-002 : jamais en
-  silence, ni au détour d'une autre action.
+  silence, ni au détour d'une autre action. Tant que l'option n'a pas été désactivée, cette
+  confirmation vaut aussi pour « Réactiver ». Ce bouton est lui-même un geste explicite, et la
+  réactivation se fait donc en un geste (User Story 2, scénario 4).
 - **FR-017**: La reconnexion autonome NE DOIT ajouter aucune communication réseau : elle reste une
   connexion locale de l'appli au casque lui-même.
 - **FR-018**: L'option DOIT être marquée « expérimental » sur les modèles de casque où elle n'a
@@ -289,10 +310,13 @@ délai redevient 7 jours.
   le fait à la prochaine connexion et l'indique. Elle ne rétablit la valeur que si le réglage vaut
   encore « jamais » ; sinon, elle n'y touche pas et oublie la valeur retenue.
 - **FR-024**: Si les autorisations n'expirent déjà pas sur le casque, l'appli NE DOIT ni proposer
-  ce choix, ni modifier ce réglage.
+  ce choix, ni modifier ce réglage. Il en va de même si le délai sort de la plage que l'appli sait
+  rétablir, de 1 ms à 3 650 jours (valeur négative, par exemple) : elle n'écrit jamais une valeur
+  qu'elle ne pourrait pas remettre (constitution, principe I).
 - **FR-025**: La carte « Reconnexion autonome » DOIT afficher l'état de ce choix (actif, inactif,
-  rétablissement en attente) et permettre de le changer en un geste, avec confirmation, quand
-  l'appli est connectée.
+  rétablissement en attente) et permettre de le changer en un geste quand l'appli est connectée.
+  L'activation demande une confirmation, qui reprend les conséquences de FR-022. Le retour au
+  délai d'origine n'en demande pas, puisqu'il réduit les droits.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -313,7 +337,8 @@ délai redevient 7 jours.
 
 - **SC-001**: Option active et casque sur un Wi-Fi déjà autorisé : sur 5 redémarrages
   consécutifs, l'appli affiche « Connecté (sans fil) » moins de 15 secondes après son ouverture,
-  sans aucune action ni PC, dans 100 % des cas.
+  sans PC, dans 100 % des cas. Sans aucune action si le système garde le réseau autorisé ; sinon,
+  la seule action est d'accepter la fenêtre système (cas limite « Réseau oublié au redémarrage »).
 - **SC-002**: Sur une semaine d'usage normal comprenant au moins 3 redémarrages du casque,
   l'utilisateur n'a jamais besoin du PC.
 - **SC-003**: Depuis l'écran de connexion, activer l'option demande au plus 2 gestes (activer,
@@ -325,7 +350,7 @@ délai redevient 7 jours.
   moins de 15 secondes après que le casque a rejoint le réseau, sans action.
 - **SC-006**: Après la désactivation de l'option puis un redémarrage, l'appli ne réactive jamais
   le débogage sans fil (100 % des essais). Si elle était connectée au moment de la désactivation,
-  elle ne détient plus le droit.
+  et que c'est elle qui avait obtenu le droit, elle ne le détient plus.
 - **SC-007**: Une comparaison des paramètres système du casque avant et après une reconnexion
   autonome ne montre aucune modification autre que l'activation du débogage sans fil et, si
   l'utilisateur l'a choisi, la durée de validité des autorisations.

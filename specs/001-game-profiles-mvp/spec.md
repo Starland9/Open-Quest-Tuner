@@ -350,8 +350,9 @@ lancer », et comparer les valeurs affichées avec le profil.
   d'appairage, ports) DOIVENT être validées comme numériques et ne servent qu'à établir la
   connexion.
 - **FR-026**: L'appli NE DOIT écrire aucun réglage qui survive à un redémarrage du casque.
-  *Exception ajoutée le 2026-09-24 par la fonctionnalité 002 (FR-021 à FR-023) : sur choix explicite
-  et réversible de l'utilisateur, la durée de validité des autorisations de débogage.*
+  *Exception ajoutée le 2026-09-24 par la fonctionnalité 002 (FR-021 à FR-023), conformément au
+  principe I de la constitution v1.1.0 : sur choix explicite et réversible de l'utilisateur, la
+  durée de validité des autorisations de débogage.*
 - **FR-027**: L'identité de connexion de l'appli auprès du casque DOIT rester dans son stockage
   privé. Elle n'est jamais affichée, exportée ni transmise.
 - **FR-028**: L'appli NE DOIT établir aucune communication réseau autre que la connexion locale

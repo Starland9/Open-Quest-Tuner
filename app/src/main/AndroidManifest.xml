@@ -10,6 +10,12 @@
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <!-- Accordée une seule fois par le shell de l'appli (C9), sur choix de l'utilisateur, pour
+         réactiver le débogage sans fil après un redémarrage (spec 002, research.md R1). Jamais
+         accordée à l'installation. -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
 
     <!-- Appli 2D (panneau) : pas de suivi de tête requis. -->
     <uses-feature

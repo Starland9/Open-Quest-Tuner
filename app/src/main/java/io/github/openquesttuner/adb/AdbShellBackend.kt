@@ -3,13 +3,18 @@ package io.github.openquesttuner.adb
 import android.content.Context
 import android.util.Log
 import io.github.muntashirakon.adb.AdbStream
+import io.github.openquesttuner.core.AutoReconnectPolicy
 import io.github.openquesttuner.core.ConnectPhase
 import io.github.openquesttuner.core.ConnectTarget
 import io.github.openquesttuner.core.ConnectionMethod
 import io.github.openquesttuner.core.ConnectionPolicy
 import io.github.openquesttuner.core.ConnectionState
 import io.github.openquesttuner.core.FailureReason
+import io.github.openquesttuner.core.PrepareResult
 import io.github.openquesttuner.core.ProbeOutcome
+import io.github.openquesttuner.core.ReconnectAttempt
+import io.github.openquesttuner.core.ReconnectIssue
+import io.github.openquesttuner.core.ReconnectOutcome
 import io.github.openquesttuner.core.ShellBackend
 import io.github.openquesttuner.core.ShellCommand
 import io.github.openquesttuner.core.ShellOutput
@@ -78,11 +83,33 @@ class AdbShellBackend(
         target = port?.let(ConnectTarget::Port) ?: ConnectTarget.Discover,
         silent = false,
         manualPort = port,
-    )
+    ) == null
+
+    /**
+     * « Se connecter » sans port quand la reconnexion autonome est active (spec 002, FR-005) :
+     * réactive d'abord le débogage sans fil, puis une seule tentative par découverte mDNS. Un échec
+     * de connexion passe à `Failed`, comme dans le MVP.
+     * @return `null` si connecté, sinon la cause retenue.
+     */
+    suspend fun connectWirelessPrepared(prepare: suspend () -> PrepareResult): ReconnectIssue? {
+        var attempted = false
+        val outcome = AutoReconnectPolicy.reconnect(
+            attempts = listOf(ReconnectAttempt(ConnectionMethod.WIRELESS, ConnectTarget.Discover, prepareWireless = true)),
+            prepare = logged(prepare),
+            connect = { attempt ->
+                attempted = true
+                connect(attempt.method, attempt.target, silent = false)
+            },
+        )
+        Log.i(TAG, "Connexion sans fil préparée : $outcome")
+        // Préparation en échec, sans tentative : la cause remplace un ancien échec affiché.
+        if (!attempted && _state.value is ConnectionState.Failed) _state.value = ConnectionState.Disconnected
+        return (outcome as? ReconnectOutcome.Failed)?.issue
+    }
 
     /** Port 5555 ouvert depuis un PC par `adb tcpip 5555` (FR-003). */
     suspend fun connectPc(): Boolean =
-        connect(ConnectionMethod.PC, ConnectTarget.Port(ConnectionPolicy.PC_PORT), silent = false)
+        connect(ConnectionMethod.PC, ConnectTarget.Port(ConnectionPolicy.PC_PORT), silent = false) == null
 
     /**
      * Passage en sans fil depuis une connexion via PC (FR-001) : l'appli active le débogage sans
@@ -113,12 +140,27 @@ class AdbShellBackend(
 
     /**
      * Rejoue la dernière méthode réussie, puis l'autre en repli ; en cas d'échec l'état reste
-     * `Disconnected`, jamais `Failed` (FR-005).
+     * `Disconnected`, jamais `Failed` (FR-005). Avec [prepare] (reconnexion autonome, spec 002),
+     * le débogage sans fil est d'abord réactivé quand vient le tour du sans-fil.
+     * @return `null` si connecté, sinon la cause retenue (toujours `null` sans [prepare]).
      */
-    suspend fun reconnectLast() {
-        for (attempt in ConnectionPolicy.reconnectAttempts(prefs.lastMethod, prefs.lastWirelessPort)) {
-            if (connect(attempt.method, attempt.target, silent = true)) return
-        }
+    suspend fun reconnectLast(prepare: (suspend () -> PrepareResult)? = null): ReconnectIssue? {
+        val attempts = ConnectionPolicy.reconnectAttempts(
+            prefs.lastMethod,
+            prefs.lastWirelessPort,
+            prepareWireless = prepare != null,
+        )
+        val outcome = AutoReconnectPolicy.reconnect(
+            attempts = attempts,
+            prepare = prepare?.let(::logged) ?: { PrepareResult.Ready },
+            connect = { connect(it.method, it.target, silent = true) },
+        )
+        Log.i(TAG, "Reconnexion : $outcome")
+        return (outcome as? ReconnectOutcome.Failed)?.issue
+    }
+
+    private fun logged(prepare: suspend () -> PrepareResult): suspend () -> PrepareResult = {
+        prepare().also { Log.i(TAG, "Préparation du sans-fil : $it") }
     }
 
     suspend fun disconnect() = withContext(Dispatchers.IO) {
@@ -142,12 +184,13 @@ class AdbShellBackend(
         }
     }
 
+    /** @return `null` si connecté, sinon la cause de l'échec. */
     private suspend fun connect(
         method: ConnectionMethod,
         target: ConnectTarget,
         silent: Boolean,
         manualPort: Int? = null,
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): FailureReason? = withContext(Dispatchers.IO) {
         connectionLock.withLock {
             disconnectQuietly()
             _state.value = ConnectionState.Connecting(method)
@@ -166,7 +209,7 @@ class AdbShellBackend(
                 val reason = ConnectionPolicy.classify(e, phase)
                 Log.w(TAG, "Connexion $method en échec : $reason (${e.javaClass.simpleName}: ${e.message})")
                 fail(method, reason, silent)
-                return@withLock false
+                return@withLock reason
             }
             Log.i(TAG, "Connexion $method : $outcome")
             when (outcome) {
@@ -174,15 +217,15 @@ class AdbShellBackend(
                     _state.value = ConnectionState.Connected(method)
                     prefs.lastMethod = method
                     if (method == ConnectionMethod.WIRELESS && manualPort != null) prefs.lastWirelessPort = manualPort
-                    true
+                    null
                 }
                 ProbeOutcome.NotAuthorized -> {
                     fail(method, FailureReason.NOT_AUTHORIZED, silent)
-                    false
+                    FailureReason.NOT_AUTHORIZED
                 }
                 ProbeOutcome.ProbeFailed -> {
                     fail(method, FailureReason.UNKNOWN, silent)
-                    false
+                    FailureReason.UNKNOWN
                 }
             }
         }

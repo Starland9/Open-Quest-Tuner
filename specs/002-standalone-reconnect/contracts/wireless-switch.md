@@ -13,7 +13,7 @@ système** de toute l'appli.
 | `isDebuggingEnabled()` | `Boolean` | `Settings.Global.ADB_ENABLED` vaut 1 (constante publique) | illisible → `true`, pour ne pas bloquer à tort : la connexion dira ensuite ce qui manque |
 | `isOnWifi()` | `Boolean` | réseau actif avec `TRANSPORT_WIFI` (`ConnectivityManager`, permission `ACCESS_NETWORK_STATE` déjà déclarée) | aucune |
 | `isWirelessDebuggingEnabled()` | `Boolean` | `Settings.Global` `"adb_wifi_enabled"` vaut 1 (clé `@Readable`, research.md R2) | exception inattendue → `false` |
-| `authorizationLifetimeMs()` | `Long?` | `Settings.Global` `"adb_allowed_connection_time"` (clé `@Readable`) ; `0` = jamais | `null` si la clé est absente : délai par défaut du système, 7 jours. Lecture seule par l'API ; seules les commandes shell C11 à C13 le modifient (research.md R6). |
+| `authorizationLifetimeMs()` | `Long?` | `Settings.Global` `"adb_allowed_connection_time"` (clé `@Readable`) ; `0` = jamais | `null` si la clé est absente : délai par défaut du système, 7 jours. Valeur non numérique : `-1`, donc hors plage, et le choix n'est pas proposé (FR-024). Lecture seule par l'API ; seules les commandes shell C11 à C13 le modifient (research.md R6). |
 | `enableWirelessDebugging()` | `Unit` | `Settings.Global.putInt(cr, "adb_wifi_enabled", 1)` | `SecurityException` sans la permission ; elle est remontée à la politique, qui renvoie `RIGHT_LOST` |
 
 Tous les appels sont synchrones et rapides : ce sont des lectures locales et une écriture de
@@ -36,5 +36,6 @@ réglage. Aucun ne touche au réseau.
 Elle ne fait pas partie de l'interface, parce que la politique n'en a pas besoin. C'est
 `AutoReconnectController` qui s'abonne aux réseaux Wi-Fi (`registerNetworkCallback`, filtre
 `TRANSPORT_WIFI`) pendant toute la vie du processus. À l'arrivée d'un réseau, si la dernière
-cause est `NO_WIFI` et que l'appli est toujours déconnectée, il relance `reconnectLast()`. Une
-seule relance peut tourner à la fois.
+cause est `NO_WIFI` et que l'appli est toujours déconnectée, il relance `reconnectLast()` après
+2 s : le réseau annoncé ne devient le réseau actif, celui que lit `isOnWifi()`, qu'un instant plus
+tard. Une seule relance peut tourner à la fois.

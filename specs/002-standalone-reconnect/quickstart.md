@@ -12,9 +12,15 @@ aussi les essais à consigner dans `docs/compatibility.md` (constitution, princi
 - Pour US2 : un second réseau Wi-Fi, jamais autorisé pour le débogage (partage de connexion d'un
   téléphone, par exemple).
 
-Rappel propre à ce casque : le port 5555 reste ouvert après un redémarrage (docs/compatibility.md).
-Pour prouver que la reconnexion passe par le sans-fil, on vérifie que l'état affiché est
-**« Connecté (sans fil) »**, et non « via PC ». Les journaux `OqtAdb` le confirment.
+Rappel propre à ce casque : le port 5555 est resté ouvert après un redémarrage le 2026-09-23,
+mais pas le 2026-09-24 (docs/compatibility.md). Pour prouver que la reconnexion passe par le
+sans-fil, on vérifie que l'état affiché est **« Connecté (sans fil) »**, et non « via PC ». Les
+journaux `OqtAdb` le confirment. Sur vros 207, la fenêtre « autoriser sur ce réseau »
+réapparaît à chaque redémarrage : l'accepter fait partie de l'essai.
+
+Le tampon `main` du casque ne garde que quelques minutes : lire les journaux juste après chaque
+essai. Si l'annonce mDNS n'atteint pas le PC, trouver le port TLS par
+`nmap -Pn -p 1024-65535 --open <ip>`, puis `adb connect <ip>:<port>`.
 
 ## 1. Build et tests (sans casque)
 
@@ -44,10 +50,11 @@ Pour chaque scénario, noter ✅ ou ❌, avec la version d'Horizon OS (`getprop 
 | 1.2 | Redémarrer le casque. Via le PC : `adb shell settings get global adb_wifi_enabled` → `0`. Dans le casque, ouvrir l'appli sans rien toucher, chronomètre en main. | « Connecté (sans fil) » en moins de 15 s. Journaux : préparation, puis `Connexion WIRELESS … Connected`. Permission toujours `granted=true` après le redémarrage. | FR-005, SC-001 |
 | 1.3 | Refaire 1.2 quatre fois (5 redémarrages en tout). | 5 sur 5. | SC-001 |
 | 1.4 | Appli fermée, sans-fil encore actif (pas de redémarrage) : `am force-stop`, puis rouvrir l'appli. | Connexion directe : les journaux ne montrent aucune écriture du réglage. | US1 sc. 3 |
-| 1.5 | Casque sur le second Wi-Fi, jamais autorisé. Redémarrer, puis ouvrir l'appli. | L'appli explique qu'il faut accepter la fenêtre d'Horizon OS. Après « Toujours autoriser » : « Connecté (sans fil) ». | FR-007, US1 sc. 4 |
+| 1.5 | Casque sur le second Wi-Fi, jamais autorisé. Redémarrer, puis ouvrir l'appli. | Pendant l'attente, l'appli affiche « Réactivation du débogage sans fil… » et explique qu'il faut accepter la fenêtre d'Horizon OS ; le badge affiche « Connexion… ». Après « Toujours autoriser » : « Connecté (sans fil) ». | FR-007, US1 sc. 4 |
 | 1.6 | Désactiver l'option, se connecter via PC, puis « Passer en sans fil ». | Après le passage : la fenêtre propose d'activer l'option. « Plus tard » la laisse inactive. | FR-003, US1 sc. 5 |
 | 1.7 | Option inactive : redémarrer, puis ouvrir l'appli. | Comportement du MVP. Via le PC, `adb_wifi_enabled` reste à `0` après l'ouverture. | US1 sc. 7, FR-008 |
 | 1.8 | Option active : redémarrer le casque **sans ouvrir l'appli**, attendre 2 minutes. | `adb_wifi_enabled` reste à `0` : rien n'est réactivé au démarrage du casque. | FR-008 |
+| 1.9 | Option active, appli connectée : « Se déconnecter ». Via le PC : `adb shell settings put global adb_wifi_enabled 0`. Dans la carte d'appairage, toucher « Se connecter », port vide. | L'appli réactive le débogage sans fil, puis passe à « Connecté (sans fil) ». | FR-005 |
 
 ### US2 : comprendre un échec
 
@@ -65,6 +72,7 @@ Pour chaque scénario, noter ✅ ou ❌, avec la version d'Horizon OS (`getprop 
 | 3.1 | Option active, appli connectée : « Désactiver ». | Confirmation, connexion conservée, et l'appli ne redémarre pas (research.md R5). `dumpsys package` : `granted=false`. | FR-013, FR-014 |
 | 3.2 | Après 3.1 : redémarrer, puis ouvrir l'appli. | `adb_wifi_enabled` reste à `0`. | SC-006 |
 | 3.3 | Option active, appli déconnectée (« Se déconnecter ») : « Désactiver ». | Message « la permission sera retirée à la prochaine connexion ». Se reconnecter : `granted=false`. | US3 sc. 2 |
+| 3.4 | Option inactive. Via le PC : `adb shell pm grant io.github.openquesttuner android.permission.WRITE_SECURE_SETTINGS`. Activer l'option, puis la désactiver. | Journaux : aucune C9 à l'activation, aucune C10 à la désactivation. `granted=true` reste affiché, et l'appli dit que la permission, accordée hors d'elle, est laissée en place. | spec, cas limites ; constitution I (condition 3) |
 
 ### US4 : autorisations sans expiration
 
@@ -79,9 +87,12 @@ d'origine et la remettre à la fin (`adb shell settings get global adb_allowed_c
 | 4.4 | Choix inactif. Via le PC : `settings delete global adb_allowed_connection_time` (casque sans délai fixé, donc 7 jours par défaut). Cocher le choix et confirmer : le délai vaut `0`. Puis « Se déconnecter » dans l'appli, et décocher. | L'appli annonce le rétablissement à la prochaine connexion. Se reconnecter : `settings get global adb_allowed_connection_time` renvoie `null`, c'est-à-dire que la clé a été supprimée (C13). | US4 sc. 5, FR-023 |
 | 4.5 | Choix actif. Via le PC : `settings put global adb_allowed_connection_time 86400000`, puis désactiver l'option dans l'appli. | L'appli n'écrit rien : le délai reste à `86400000` (FR-023, valeur changée par un autre outil). | FR-023 |
 | 4.6 | Délai d'origine à `0` (cas de ce casque). « Activer ». | Le choix n'est pas proposé. Délai inchangé. | FR-024, US4 sc. 6 |
+| 4.8 | Via le PC : `settings put global adb_allowed_connection_time 400000000000` (plus de 3 650 jours). « Activer ». | Le choix n'est pas proposé, et le délai reste inchangé : il est hors de la plage que l'appli sait rétablir. **Ne pas essayer de valeur négative**, qui pourrait faire expirer toutes les clés. | FR-024 |
 | 4.7 | *(Long : environ 2 h.)* Délai à `3600000` (1 h), option active **sans** le choix, dernière connexion de l'appli via PC. Utiliser le casque plus d'une heure sans le port 5555 ; redémarrer, puis ouvrir l'appli. Recommencer **avec** le choix. | Sans le choix : cause « autorisation plus reconnue » (noter l'exception, research.md R7). Avec le choix : « Connecté (sans fil) ». Réautoriser ensuite le PC si sa clé a expiré, et remettre la valeur d'origine. | SC-010 |
 
 ## 4. Aucun autre réglage modifié (SC-007)
+
+*(Voir aussi la section 7 pour le suivi après livraison.)*
 
 ```bash
 adb shell 'settings list global; settings list secure' | sort > avant.txt
@@ -114,3 +125,9 @@ pendant les scénarios 1.2 et 2.1, l'appli ne communique qu'avec le casque lui-m
 
 Si 1.1 à 1.3 réussissent, passer `QuestModel.QUEST_3.autoReconnectVerified` à `true` : le badge
 « expérimental » disparaît sur Quest 3 (FR-018).
+
+## 7. Après la livraison (SC-002)
+
+Pendant une semaine d'usage normal, avec au moins trois redémarrages du casque, noter chaque fois
+que le PC a été nécessaire. Attendu : jamais. Sur un casque dont les autorisations expirent, le
+choix de l'US4 doit être actif. Consigner le résultat dans `docs/compatibility.md`.
