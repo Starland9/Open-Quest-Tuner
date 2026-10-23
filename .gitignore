@@ -1,22 +1,27 @@
-# Gradle / Android
+# Android and Gradle output
 .gradle/
-build/
+.kotlin/
+**/build/
 local.properties
 captures/
 .externalNativeBuild/
 .cxx/
-.kotlin/
 *.apk
 *.aab
+*.log
+*.hprof
 
-# IDE
+# Local signing material
+signing/
+*.keystore
+*.jks
+keystore.properties
+
+# Editor and operating system files
 .idea/
-*.iml
 .vscode/
-
-# Système / éditeurs
+*.iml
 .DS_Store
 Thumbs.db
 *.swp
 *.tmp
-*.log

@@ -17,44 +17,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private const val ICON_PX = 96
+private const val ICON_PX = 384
+// Bound bitmap memory while retaining crisp library artwork.
+private val iconCache = object : LruCache<String, ImageBitmap>(24 * 1024 * 1024) {
+    override fun sizeOf(key: String, value: ImageBitmap): Int = value.width * value.height * 4
+}
 
-/** Icônes déjà chargées, pour que le défilement de la liste ne relise pas le PackageManager. */
-private val iconCache = LruCache<String, ImageBitmap>(200)
-
-/** Icône 48dp du jeu ; initiale du nom tant qu'elle n'est pas chargée, ou si elle est introuvable. */
 @Composable
-fun GameIcon(packageName: String, label: String, modifier: Modifier = Modifier) {
+fun GameIcon(packageName: String, label: String, modifier: Modifier = Modifier, size: Dp = 48.dp) {
     val pm = LocalContext.current.packageManager
     val icon by produceState(initialValue = iconCache.get(packageName), packageName) {
         if (value == null) value = withContext(Dispatchers.IO) { loadIcon(pm, packageName) }
     }
-    Box(modifier.size(48.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.size(size), contentAlignment = Alignment.Center) {
         val bitmap = icon
-        if (bitmap != null) {
-            Image(bitmap, contentDescription = null, modifier = Modifier.fillMaxSize())
-        } else {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = MaterialTheme.shapes.medium,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(label.take(1).uppercase(), style = MaterialTheme.typography.titleLarge)
-                }
-            }
+        if (bitmap != null) Image(bitmap, contentDescription = null, modifier = Modifier.fillMaxSize())
+        else Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
+            Box(contentAlignment = Alignment.Center) { Text(label.take(1).uppercase(), style = MaterialTheme.typography.titleLarge) }
         }
     }
 }
 
 private fun loadIcon(pm: PackageManager, packageName: String): ImageBitmap? = try {
-    pm.getApplicationIcon(packageName).toBitmap(ICON_PX, ICON_PX).asImageBitmap()
-        .also { iconCache.put(packageName, it) }
-} catch (e: PackageManager.NameNotFoundException) {
-    null
-}
+    pm.getApplicationIcon(packageName).toBitmap(ICON_PX, ICON_PX).asImageBitmap().also { iconCache.put(packageName, it) }
+} catch (e: PackageManager.NameNotFoundException) { null }

@@ -1,3 +1,5 @@
+import java.util.Properties
+import java.io.File
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -10,16 +12,28 @@ plugins {
 android {
     namespace = "io.github.openquesttuner"
     compileSdk = 35
+    ndkVersion = "27.2.12479018"
 
     defaultConfig {
         applicationId = "io.github.openquesttuner"
         minSdk = 29
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 35
+        versionName = "0.19.2-NativeAutoTune-ForegroundFix"
 
         // Quest = arm64-v8a ; x86_64 pour l'émulateur. Limite les binaires natifs de spake2-android.
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        ndk { abiFilters += listOf("arm64-v8a") }
+    }
+
+    // Optional local development key. Otherwise use Android's default debug key.
+    val developmentKey = rootProject.file("signing/oqt-debug.keystore")
+    if (developmentKey.isFile) {
+        signingConfigs.getByName("debug") {
+            storeFile = developmentKey
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
@@ -65,6 +79,7 @@ kotlin {
 }
 
 dependencies {
+    implementation("org.khronos.openxr:openxr_loader_for_android:1.1.49")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
@@ -89,3 +104,22 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }
+
+// Build the independent Quest arm64 HUD using the pinned Android NDK, on all desktop hosts.
+val hudJni = layout.buildDirectory.dir("generated/hudJni")
+android.sourceSets.getByName("main").jniLibs.srcDir(hudJni)
+val compileImmersiveHud = tasks.register<Exec>("compileImmersiveHud") {
+    inputs.dir("src/main/cpp")
+    outputs.file(hudJni.map { it.file("arm64-v8a/liboqt_hud.so") })
+    doFirst {
+        val sdkPath = Properties().apply { rootProject.file("local.properties").let { if(it.exists()) it.inputStream().use { stream -> load(stream) } } }.getProperty("sdk.dir")
+            ?: System.getenv("ANDROID_HOME") ?: error("Android SDK location required")
+        val host = System.getProperty("os.name").lowercase()
+        val tag = if (host.contains("win")) "windows-x86_64" else if (host.contains("mac")) "darwin-x86_64" else "linux-x86_64"
+        val compiler = File(sdkPath,"ndk/27.2.12479018/toolchains/llvm/prebuilt/$tag/bin/aarch64-linux-android29-clang++" + if(host.contains("win")) ".cmd" else "")
+        val output = hudJni.get().file("arm64-v8a/liboqt_hud.so").asFile.apply { parentFile.mkdirs() }
+        val nativeArgs=listOf(compiler.absolutePath,"-std=c++17","-O2","-fPIC","-shared","-static-libstdc++","-Wl,-z,max-page-size=16384",file("src/main/cpp/immersive_hud.cpp").absolutePath,"-o",output.absolutePath,"-lEGL","-lGLESv3","-landroid","-llog","-ldl")
+        commandLine(if(host.contains("win")) listOf("cmd","/c")+nativeArgs else nativeArgs)
+    }
+}
+tasks.named("preBuild").configure { dependsOn(compileImmersiveHud) }

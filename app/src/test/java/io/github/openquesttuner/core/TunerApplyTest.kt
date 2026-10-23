@@ -37,6 +37,7 @@ class TunerApplyTest {
                 ShellCommand.setProperty(QuestProperty.GPU_LEVEL, 4).text,
                 ShellCommand.setProperty(QuestProperty.FOVEATION_LEVEL, 2).text,
                 ShellCommand.setProperty(QuestProperty.FOVEATION_DYNAMIC, 0).text,
+                "getprop",
                 launchText(),
             ),
             shell.executed,
@@ -57,7 +58,7 @@ class TunerApplyTest {
                         ShellCommand.resetProperty(property).text
                     }
                 } +
-                launchText(),
+                listOf("getprop", launchText()),
             shell.executed,
         )
     }
@@ -65,7 +66,7 @@ class TunerApplyTest {
     @Test
     fun `un profil vide reinitialise les 7 proprietes puis lance`() = runTest {
         assertEquals(TuneResult.Success, tuner.applyAndLaunch(PKG, ACTIVITY, GameProfile()))
-        assertEquals(9, shell.executed.size)
+        assertEquals(10, shell.executed.size)
         assertEquals(QuestProperty.entries.map { ShellCommand.resetProperty(it).text }, shell.executed.subList(1, 8))
     }
 

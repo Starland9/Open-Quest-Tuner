@@ -77,7 +77,7 @@
     <string name="open_connection">Connection</string>
     <string name="profile_saved">Profile saved.</string>
     <string name="profile_save_failed">The profile could not be saved.</string>
-    <string name="tune_success">Game launched. Settings stay active until “Reset all” or a headset restart.</string>
+    <string name="tune_success">Overrides read back. Game launched. Use Performance or the OVR HUD to measure the result.</string>
     <string name="tune_step_failed">The “%1$s” setting could not be applied: the game was not launched.</string>
     <string name="tune_force_stop_failed">The game could not be stopped: it was not launched.</string>
     <string name="tune_launch_failed">Settings applied, but the game could not be launched.</string>
@@ -121,7 +121,7 @@
     <string name="diagnostic_connect">Connect the app to read the settings active on the headset.</string>
     <string name="diagnostic_unavailable">Active settings cannot be read right now.</string>
     <string name="diagnostic_no_active">No active setting.</string>
-    <string name="profile_active">Active on the headset</string>
+    <string name="profile_active">Override properties match</string>
     <string name="profile_not_applied">Not applied to the headset</string>
     <!-- Spec 002, US1 : reconnexion autonome -->
     <string name="auto_reconnect_title">Auto-reconnect</string>
@@ -188,4 +188,21 @@
     <!-- Spec 003, US3 : fréquence réelle de l'écran -->
     <string name="display_refresh_rate">Display refresh rate: %1$d Hz</string>
     <string name="display_refresh_rate_unknown">Display refresh rate: unknown</string>
+
+    <!-- Professional dashboard / optional headset fallback -->
+    <string name="dashboard_title">Performance profiles</string>
+    <string name="dashboard_summary">%1$d VR games • %2$d custom profiles</string>
+    <string name="global_profile">Headset default</string>
+    <string name="global_profile_subtitle">Fallback profile for games without their own profile</string>
+    <string name="global_profile_on">Headset default is active</string>
+    <string name="global_profile_off">Headset default is off</string>
+    <string name="global_profile_enabled">Use this fallback for games without a dedicated profile</string>
+    <string name="global_profile_disabled">Fallback disabled — games without a profile use their own defaults</string>
+    <string name="global_profile_explanation">This is optional. A dedicated game profile always wins. Because Quest tuning properties are system-wide, the selected values remain active until another profile is applied, Reset all is used, or the headset restarts.</string>
+    <string name="global_profile_saved">Headset default profile saved.</string>
+    <string name="quick_presets">Quick presets</string>
+    <string name="preset_battery">Battery</string>
+    <string name="preset_balanced">Balanced</string>
+    <string name="preset_performance">Performance</string>
+    <string name="preset_game_default">Game default</string>
 </resources>

@@ -57,12 +57,12 @@ class AdbShellBackend(
     private val manager by managerDelegate
 
     /** Appairage TLS sur 127.0.0.1, puis connexion sans fil en cas de succès. */
-    suspend fun pair(port: Int, code: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun pair(host: String, port: Int, code: String): Boolean = withContext(Dispatchers.IO) {
         val paired = connectionLock.withLock {
             disconnectQuietly()
             _state.value = ConnectionState.Pairing
             try {
-                manager.pair(LOCALHOST, port, code)
+                manager.pair(host, port, code)
                 Log.i(TAG, "Appairage réussi")
                 true
             } catch (e: CancellationException) {
@@ -172,7 +172,7 @@ class AdbShellBackend(
 
     override suspend fun exec(command: ShellCommand): ShellResult = withContext(Dispatchers.IO) {
         if (_state.value !is ConnectionState.Connected) throw ShellUnavailableException()
-        val result = ConnectionPolicy.withRetries { attempt ->
+        val result = if (!command.retryable) runWithTimeout(15_000L, command) else ConnectionPolicy.withRetries { attempt ->
             runWithTimeout(EXEC_TIMEOUT_MS, command).onFailure { error ->
                 Log.w(TAG, "Commande sans réponse, essai $attempt/${ConnectionPolicy.MAX_EXEC_ATTEMPTS} : ${error.javaClass.simpleName}")
             }
@@ -252,9 +252,9 @@ class AdbShellBackend(
 
     /** Exécution sans effet sur l'état ; seules les fabriques de [ShellCommand] produisent le texte. */
     private fun rawExec(command: ShellCommand): ShellResult =
-        manager.openStream("shell:" + command.wireText).use { stream -> ShellOutput.parse(readAll(stream)) }
+        manager.openStream("shell:" + command.wireText).use { stream -> ShellOutput.parse(readAll(stream, command.exitMarker), command.exitMarker) }
 
-    private fun readAll(stream: AdbStream): String {
+    private fun readAll(stream: AdbStream, marker: String): String {
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(READ_BUFFER_SIZE)
         val input = stream.openInputStream()
@@ -262,10 +262,11 @@ class AdbShellBackend(
             while (true) {
                 val count = input.read(buffer)
                 if (count < 0) break
+                if (out.size() + count > 512 * 1024) throw IOException("Shell output exceeded 512 KiB")
                 out.write(buffer, 0, count)
                 // Le marqueur de fin suffit : libadb peut ne jamais signaler la fermeture du flux
                 // quand elle arrive avant la lecture de la dernière donnée (research.md R3).
-                if (ShellOutput.isComplete(out.toString(Charsets.UTF_8.name()))) break
+                if (ShellOutput.isComplete(out.toString(Charsets.UTF_8.name()), marker)) break
             }
         } catch (e: IOException) {
             // libadb signale parfois la fin du flux par « Stream closed. » après la dernière donnée.

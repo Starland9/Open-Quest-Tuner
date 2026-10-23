@@ -10,6 +10,7 @@ class FakeShellBackend : ShellBackend {
 
     override val state = MutableStateFlow<ConnectionState>(ConnectionState.Connected(ConnectionMethod.WIRELESS))
 
+    private val properties = mutableMapOf<String, String>()
     val executed = mutableListOf<String>()
 
     private val responses = mutableListOf<Pair<String, ShellResult>>()
@@ -34,7 +35,10 @@ class FakeShellBackend : ShellBackend {
         }
         executed += command.text
         onExec(command.text)
-        return responses.lastOrNull { (prefix, _) -> command.text.startsWith(prefix) }?.second
-            ?: ShellResult(exitCode = 0, output = "")
+        responses.lastOrNull { (prefix, _) -> command.text.startsWith(prefix) }?.second?.let { return it }
+        Regex("setprop ([a-zA-Z0-9_.]+) (.*)").matchEntire(command.text)?.let { properties[it.groupValues[1]] = it.groupValues[2].removeSurrounding("'") }
+        if (command.text == "getprop") return ShellResult(0, properties.entries.joinToString("\n") { "[${it.key}]: [${it.value}]" })
+        if (command.text.startsWith("getprop ")) return ShellResult(0, properties[command.text.removePrefix("getprop ")].orEmpty())
+        return ShellResult(0, "")
     }
 }

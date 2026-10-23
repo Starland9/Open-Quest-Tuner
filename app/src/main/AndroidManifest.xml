@@ -2,6 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="oculus.render_notification" />
+    <uses-permission android:name="horizonos.permission.READ_FOCUS_STATE" />
+    <queries>
+        <package android:name="com.android.settings" />
+    </queries>
+
     <!-- Socket vers l'adbd du casque lui-même (127.0.0.1) et découverte mDNS locale. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -17,10 +23,14 @@
         android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Optional experimental tuning status HUD, enabled explicitly in Advanced. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Appli 2D (panneau) : pas de suivi de tête requis. -->
     <uses-feature
         android:name="android.hardware.vr.headtracking"
-        android:required="false" />
+        android:required="false" android:version="1" />
 
     <!-- allowBackup=false et dataExtractionRules : la clé ADB privée ne doit jamais quitter le casque
          (principe I, FR-027), ni par sauvegarde ni par transfert vers un autre appareil (Android 12+). -->
@@ -37,6 +47,10 @@
             android:name="com.oculus.supportedDevices"
             android:value="quest2|questpro|quest3|quest3s" />
 
+        <service android:name=".monitor.PerformanceRecordingService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-started on-device VR game performance logging via paired localhost ADB while gaming" />
+        </service>
+        <uses-native-library android:name="libhzos.meta.so" android:required="false" />
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density"

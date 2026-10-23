@@ -37,19 +37,19 @@ fun <T> ChoiceRow(
     experimentalOptions: Set<T> = emptySet(),
     disabledOptions: Set<T> = emptySet(),
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             if (experimental) ExperimentalBadge()
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             options.forEach { (value, label) ->
                 FilterChip(
                     selected = value == selected,
                     onClick = { onSelect(value) },
                     label = {
                         if (value != null && value in experimentalOptions) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(label)
                                 ExperimentalBadge()
                             }
@@ -58,8 +58,8 @@ fun <T> ChoiceRow(
                         }
                     },
                     enabled = enabled && (value == null || value !in disabledOptions),
-                    // Cible d'au moins 48dp : on vise aux contrôleurs ou aux mains (FR-030).
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    // Compact chip; the theme reserves a 40dp interaction region.
+                    modifier = Modifier.heightIn(min = 32.dp),
                 )
             }
         }

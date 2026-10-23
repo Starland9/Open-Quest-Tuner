@@ -11,11 +11,11 @@ object ShellOutput {
      * Sépare la sortie du code de sortie, lu après le **dernier** marqueur. Sans marqueur (flux
      * coupé), le code vaut `null` et le résultat est un échec.
      */
-    fun parse(raw: String): ShellResult {
+    fun parse(raw: String, marker: String = EXIT_MARKER): ShellResult {
         val text = raw.replace("\r", "")
-        val markerIndex = text.lastIndexOf(EXIT_MARKER)
+        val markerIndex = text.lastIndexOf(marker)
         if (markerIndex < 0) return ShellResult(null, text.trimEnd())
-        val code = text.substring(markerIndex + EXIT_MARKER.length)
+        val code = text.substring(markerIndex + marker.length)
             .substringBefore('\n')
             .trim()
             .toIntOrNull()
@@ -27,11 +27,11 @@ object ShellOutput {
      * dernier : la lecture peut s'arrêter là sans attendre la fermeture du flux, que libadb peut ne
      * jamais signaler (research.md R3).
      */
-    fun isComplete(raw: String): Boolean {
+    fun isComplete(raw: String, marker: String = EXIT_MARKER): Boolean {
         val text = raw.replace("\r", "")
         if (!text.endsWith('\n')) return false
         val lastLine = text.dropLast(1).substringAfterLast('\n')
-        return lastLine.startsWith(EXIT_MARKER) && lastLine.removePrefix(EXIT_MARKER).trim().toIntOrNull() != null
+        return lastLine.startsWith(marker) && lastLine.removePrefix(marker).trim().toIntOrNull() != null
     }
 
     /** Propriétés `debug.oculus.*` non vides d'une sortie `getprop`, triées par clé. */

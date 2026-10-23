@@ -1,7 +1,11 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package io.github.openquesttuner.ui
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +32,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -46,10 +54,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.openquesttuner.R
 import io.github.openquesttuner.core.ConnectionState
+import io.github.openquesttuner.core.AutoTuneRecommendation
+import io.github.openquesttuner.core.TuneGoal
 import io.github.openquesttuner.core.Diagnostic
 import io.github.openquesttuner.core.EyeTexture
 import io.github.openquesttuner.core.FoveationLevel
 import io.github.openquesttuner.core.GameProfile
+import io.github.openquesttuner.core.GameProfileLibrary
 import io.github.openquesttuner.core.ProfileWarning
 import io.github.openquesttuner.core.QuestModel
 import io.github.openquesttuner.core.QuestProperty
@@ -57,6 +68,10 @@ import io.github.openquesttuner.core.RESOLUTION_STEPS
 import io.github.openquesttuner.core.RateSelection
 import io.github.openquesttuner.core.RefreshRatePolicy
 import io.github.openquesttuner.core.ThermalLevel
+import io.github.openquesttuner.core.GameOptimizationHistory
+import io.github.openquesttuner.core.AdaptiveSuggestion
+import io.github.openquesttuner.core.CommunityProfile
+import io.github.openquesttuner.core.OptimizationScore
 import io.github.openquesttuner.games.InstalledGame
 import io.github.openquesttuner.ui.components.ChoiceRow
 import io.github.openquesttuner.ui.components.ThermalBanner
@@ -81,6 +96,27 @@ fun ProfileScreen(
     thermalLevel: ThermalLevel,
     diagnostic: Diagnostic?,
     refreshRates: List<Int>,
+    library: GameProfileLibrary?,
+    onSaveNamed: (String, GameProfile) -> Unit,
+    onSelectNamed: (String) -> Unit,
+    onDeleteNamed: (String) -> Unit,
+    onCloneNamed: (String, String) -> Unit,
+    autoTuneRecommendations: List<AutoTuneRecommendation>,
+    onApplyAutoTune: (TuneGoal) -> Unit,
+    optimizationHistory: GameOptimizationHistory?,
+    adaptiveSuggestion: AdaptiveSuggestion?,
+    onApplyAdaptive: () -> Unit,
+    onClearAdaptiveHistory: () -> Unit,
+    communityProfiles: List<CommunityProfile>,
+    onInstallCommunityProfile: (CommunityProfile) -> Unit,
+    optimizationScore: OptimizationScore,
+    optimizationAdvice: io.github.openquesttuner.core.OptimizationAdvice,
+    sessions: List<io.github.openquesttuner.core.GameSession>,
+    initialSection: Int = 2,
+    onApplyOptimizationAdvice: () -> Unit,
+    onClearSessions: () -> Unit,
+    onOpenPerformance: () -> Unit,
+    measuredLearning: @Composable () -> Unit,
 ) {
     // Suit aussi le profil enregistré, qui peut arriver après l'ouverture de l'écran au démarrage,
     // et revient à « Par défaut du jeu » partout quand le profil est supprimé.
@@ -89,6 +125,18 @@ fun ProfileScreen(
     // FR-006) : le message reste affiché jusqu'au changement suivant du profil.
     var loweredToStep by remember(game.packageName, saved) { mutableStateOf<Int?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var diagnostics by remember(game.packageName) { mutableStateOf(false) }
+    var section by remember(game.packageName, initialSection) { mutableStateOf(initialSection.coerceIn(0, 2)) }
+
+    var profileName by remember(game.packageName, library?.selected) { mutableStateOf(library?.selected.orEmpty()) }
+    var confirmPerformance by remember { mutableStateOf(false) }
+    fun saveDraft() { if (profileName.isBlank()) onSave(draft) else onSaveNamed(profileName.trim(), draft) }
+    if (confirmPerformance) AlertDialog(
+        onDismissRequest = { confirmPerformance = false }, title = { Text("Save changes first?") },
+        text = { Text("Save this profile before opening Performance so your edits are kept.") },
+        confirmButton = { Button(onClick = { saveDraft(); confirmPerformance = false; onOpenPerformance() }) { Text("Save & open") } },
+        dismissButton = { TextButton(onClick = { confirmPerformance = false }) { Text("Stay here") } },
+    )
 
     if (confirmDelete) {
         AlertDialog(
@@ -101,13 +149,13 @@ fun ProfileScreen(
                         confirmDelete = false
                         onDelete()
                     },
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.heightIn(min = 40.dp),
                 ) {
                     Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDelete = false }, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = { confirmDelete = false }, modifier = Modifier.heightIn(min = 40.dp)) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -116,8 +164,11 @@ fun ProfileScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(game.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            OqtTopAppBar(
+                title = { Column {
+                    Text("Tune profile", style = MaterialTheme.typography.titleMedium)
+                    Text(game.label, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
+                } },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -134,57 +185,140 @@ fun ProfileScreen(
             )
         },
         bottomBar = {
-            ActionBar(
-                connected = connectionState is ConnectionState.Connected,
-                tuning = tuning,
-                launchOnly = draft.isEmpty,
-                onSave = { onSave(draft) },
-                onApplyAndLaunch = { onApplyAndLaunch(draft) },
-                onOpenConnection = onOpenConnection,
+            if (section == 0) TuneActionBar(
+                connected = connectionState is ConnectionState.Connected, tuning = tuning,
+                draft = draft, saved = saved,
+                readbackMatches = tuneReadbackRows(draft, connectionState is ConnectionState.Connected, diagnostic).all { it.status == TuneReadbackStatus.MATCH },
+                onReset = { draft = GameProfile(); loweredToStep = null }, onSave = ::saveDraft,
+                onApplyAndLaunch = { onApplyAndLaunch(draft) }, onOpenConnection = onOpenConnection,
+            ) else if(section==1) ActionBar(
+                connected = connectionState is ConnectionState.Connected, tuning = tuning, launchOnly = draft.isEmpty,
+                onSave = { onSave(draft) }, onApplyAndLaunch = { onApplyAndLaunch(draft) }, onOpenConnection = onOpenConnection,
             )
         },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             Column(
-                modifier = Modifier
-                    .widthIn(max = 760.dp)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier.fillMaxSize().padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 ThermalBanner(thermalLevel)
-                ModelInfo(model)
-                // FR-033 : seulement si l'état du casque est connu (connecté et diagnostic lu).
-                if (connectionState is ConnectionState.Connected && diagnostic != null) {
-                    ActiveIndicator(active = draft.isActiveOn(diagnostic.active))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(2 to "Auto Learn", 0 to "Manual Tune", 1 to "Profiles").forEach { (index,label) ->
+                        FilterChip(selected = section == index, onClick = { section = index }, label = { Text(label) })
+                    }
                 }
-                Settings(
-                    draft = draft,
-                    model = model,
-                    refreshRates = refreshRates,
-                    loweredToStep = loweredToStep,
-                    onChange = {
-                        draft = it
-                        loweredToStep = null
-                    },
-                    onRateSelected = { selection ->
-                        draft = selection.profile
-                        loweredToStep = selection.loweredToStep
-                    },
-                )
-                Warnings(draft.warnings(model))
-                // Spec 003, FR-009 : à fréquence élevée, tout le casque reste à cette fréquence.
-                val highRate = draft.refreshRate?.takeIf(RefreshRatePolicy::isHigh)
-                InfoCard(
-                    listOfNotNull(
-                        stringResource(R.string.settings_persist_info),
-                        highRate?.let { stringResource(R.string.settings_persist_high_rate, it) },
-                    ).joinToString("\n"),
-                )
+                when (section) {
+                    0 -> TuneWorkspace(
+                        draft = draft, model = model, refreshRates = refreshRates, loweredToStep = loweredToStep,
+                        profileName = profileName, onNameChange = { profileName = it }, enabled = !tuning,
+                        connected = connectionState is ConnectionState.Connected, diagnostic = diagnostic,
+                        onChange = { draft = it; loweredToStep = null },
+                        onRateSelected = { draft = it.profile; loweredToStep = it.loweredToStep },
+                        onPerformance = {
+                            if (draft != (saved ?: GameProfile()) || profileName != library?.selected.orEmpty()) confirmPerformance = true
+                            else onOpenPerformance()
+                        },
+                        presets = { PresetRow(model, { draft = it; loweredToStep = null }, compact = true, enabled = !tuning, selected = draft) },
+                        warnings = { Warnings(draft.warnings(model)) },
+                    )
+                    1 -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        NamedProfileManager(
+                            library = library, draft = draft,
+                            onLoad = { name, profile -> draft = profile; onSelectNamed(name) },
+                            onSave = onSaveNamed, onDelete = onDeleteNamed, onClone = onCloneNamed,
+                        )
+                        AutoTuneCard(autoTuneRecommendations, onPreview = { draft = it.profile }, onApply = onApplyAutoTune)
+                        CommunityRecommendationsCard(communityProfiles, onPreview = { draft = it.profile }, onInstall = onInstallCommunityProfile)
+                    }
+                    else -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        measuredLearning()
+                        TextButton(onClick={diagnostics=!diagnostics}) { Text(if(diagnostics) "Hide other diagnostics" else "Other diagnostics") }
+                        if(diagnostics) {
+                        ModelInfo(model)
+                        OptimizationScoreCard(optimizationScore)
+                        OptimizationAssistantCard(optimizationAdvice, sessions, onApplyOptimizationAdvice)
+                        AdaptiveHistoryCard(optimizationHistory, adaptiveSuggestion, onApplyAdaptive, onClearAdaptiveHistory)
+                        SessionHistoryCard(sessions, onClearSessions)
+                        }
+                    }
+                }
             }
         }
     }
 }
+
+
+@Composable
+private fun NamedProfileManager(
+    library: GameProfileLibrary?, draft: GameProfile,
+    onLoad: (String, GameProfile) -> Unit, onSave: (String, GameProfile) -> Unit,
+    onDelete: (String) -> Unit, onClone: (String, String) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    var cloneName by remember { mutableStateOf("") }
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
+        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Profile Library", style = MaterialTheme.typography.titleMedium)
+            Text("Keep multiple setups for this game and switch between quality, smoothness or battery-focused tuning.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!library?.profiles.isNullOrEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    library!!.profiles.forEach { (profileName, profile) ->
+                        FilterChip(selected = library.selected == profileName, onClick = { onLoad(profileName, profile) }, label = { Text(profileName) })
+                    }
+                }
+                val selected = library.selected.takeIf { it in library.profiles }
+                if (selected != null) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(cloneName, { cloneName = it }, label = { Text("Clone as") }, singleLine = true, modifier = Modifier.weight(1f).widthIn(min = 160.dp))
+                        FilledTonalButton(onClick = { if (cloneName.isNotBlank()) { onClone(selected, cloneName); cloneName = "" } }, modifier = Modifier.heightIn(min = 40.dp)) { Text("Clone") }
+                        TextButton(onClick = { onDelete(selected) }, modifier = Modifier.heightIn(min = 40.dp)) { Text("Delete") }
+                    }
+                }
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text("Profile name") }, placeholder = { Text("e.g. HD+") }, singleLine = true, modifier = Modifier.weight(1f).widthIn(min = 160.dp))
+                Button(onClick = { if (name.isNotBlank()) { onSave(name, draft); name = "" } }, modifier = Modifier.heightIn(min = 40.dp)) { Text("Save preset") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AutoTuneCard(
+    recommendations: List<AutoTuneRecommendation>,
+    onPreview: (AutoTuneRecommendation) -> Unit,
+    onApply: (TuneGoal) -> Unit,
+) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .55f))) {
+        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Measured profiles / starter presets", style = MaterialTheme.typography.titleMedium)
+            Text("Measured recommendations use repeat-tested game data. Entries marked Untested are headset-based starting recipes, not learned results.", style = MaterialTheme.typography.bodySmall)
+            recommendations.forEach { recommendation ->
+                Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(recommendation.goal.label, fontWeight = FontWeight.SemiBold)
+                                Text("${recommendation.source} • ${recommendation.profile.autoTuneSummary()}", style = MaterialTheme.typography.bodySmall)
+                            }
+                            TextButton(onClick = { onPreview(recommendation) }) { Text("Preview") }
+                            FilledTonalButton(onClick = { onApply(recommendation.goal) }) { Text("Use") }
+                        }
+                        Text(recommendation.rationale.last(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun GameProfile.autoTuneSummary(): String = listOfNotNull(
+    refreshRate?.let { "$it Hz" },
+    eyeTexture?.let { "${it.width}×${it.height}" },
+    gpuLevel?.let { "GPU $it" },
+    foveationLevel?.let { "FFR ${it.name.lowercase()}" },
+).joinToString(" • ")
 
 @Composable
 private fun ModelInfo(model: QuestModel) {
@@ -206,7 +340,7 @@ private fun ModelInfo(model: QuestModel) {
 @Composable
 private fun ActiveIndicator(active: Boolean) {
     val color = if (active) Color(0xFF6DD58C) else MaterialTheme.colorScheme.onSurfaceVariant
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.size(10.dp).background(color, CircleShape))
         Text(
             stringResource(if (active) R.string.profile_active else R.string.profile_not_applied),
@@ -228,6 +362,9 @@ private fun Settings(
     val default = stringResource(R.string.setting_default)
     fun experimental(vararg properties: QuestProperty) = properties.any { !model.isVerified(it) }
 
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+    val columns = if (maxWidth >= 700.dp && androidx.compose.ui.platform.LocalDensity.current.fontScale <= 1.3f) 2 else 1
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
     // Fréquence enregistrée que cet écran ne propose pas (profil venu d'un autre casque, mise à
     // jour d'Horizon OS) : affichée telle quelle, indisponible, pour ne pas la perdre en silence.
     val unavailableRate = draft.refreshRate?.takeIf { it !in refreshRates }
@@ -283,7 +420,10 @@ private fun Settings(
         )
     }
 
+
+    FlowRow(maxItemsInEachRow = columns, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
     ChoiceRow(
+        modifier = Modifier.weight(1f),
         title = stringResource(R.string.setting_cpu),
         options = listOf(null to default) + model.cpuLevels.map { it to it.toString() },
         selected = draft.cpuLevel,
@@ -293,6 +433,7 @@ private fun Settings(
     )
 
     ChoiceRow(
+        modifier = Modifier.weight(1f),
         title = stringResource(R.string.setting_gpu),
         options = listOf(null to default) + model.gpuLevels.map { it to it.toString() },
         selected = draft.gpuLevel,
@@ -301,7 +442,10 @@ private fun Settings(
         helpText = conditionalLevelHelp(draft.gpuLevel, model.alwaysAvailableGpuMax),
     )
 
+    }
+    FlowRow(maxItemsInEachRow = columns, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
     ChoiceRow(
+        modifier = Modifier.weight(1f),
         title = stringResource(R.string.setting_foveation),
         options = listOf(null to default) + FoveationLevel.entries.map { it to stringResource(it.labelRes()) },
         selected = draft.foveationLevel,
@@ -310,6 +454,7 @@ private fun Settings(
     )
 
     ChoiceRow(
+        modifier = Modifier.weight(1f),
         title = stringResource(R.string.setting_dynamic_foveation),
         options = listOf(
             null to default,
@@ -319,7 +464,10 @@ private fun Settings(
         selected = draft.dynamicFoveation,
         onSelect = { onChange(draft.copy(dynamicFoveation = it)) },
         experimental = experimental(QuestProperty.FOVEATION_DYNAMIC),
-    )
+    )    }
+    }
+    }
+
 }
 
 /** Au-delà de ces niveaux, le casque ne les accorde que sous conditions (research.md R2). */
@@ -351,7 +499,7 @@ private fun NoticeCard(text: String, accent: Color) {
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(10.dp))
     }
 }
 
@@ -361,7 +509,7 @@ private fun InfoCard(text: String) {
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(10.dp))
     }
 }
 
@@ -376,30 +524,30 @@ private fun ActionBar(
 ) {
     Surface(tonalElevation = 3.dp) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             if (!connected) {
                 // FR-021 : lancement impossible hors connexion, mais l'enregistrement reste permis.
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         stringResource(R.string.launch_needs_connection),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = onOpenConnection, modifier = Modifier.heightIn(min = 48.dp)) {
+                    TextButton(onClick = onOpenConnection, modifier = Modifier.heightIn(min = 40.dp)) {
                         Text(stringResource(R.string.open_connection))
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = onSave, enabled = !tuning, modifier = Modifier.heightIn(min = 48.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onSave, enabled = !tuning, modifier = Modifier.heightIn(min = 40.dp)) {
                     Text(stringResource(R.string.save))
                 }
                 Button(
                     onClick = onApplyAndLaunch,
                     enabled = connected && !tuning,
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.heightIn(min = 40.dp),
                 ) {
                     if (tuning) {
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -420,4 +568,129 @@ private fun FoveationLevel.labelRes(): Int = when (this) {
     FoveationLevel.MEDIUM -> R.string.foveation_medium
     FoveationLevel.HIGH -> R.string.foveation_high
     FoveationLevel.HIGH_TOP -> R.string.foveation_high_top
+}
+
+/** Headset-wide fallback. Dedicated per-game profiles always take priority over this profile. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GlobalProfileScreen(
+    saved: GameProfile,
+    enabled: Boolean,
+    model: QuestModel,
+    onBack: () -> Unit,
+    onSave: (GameProfile) -> Unit,
+    onEnabledChange: (Boolean) -> Unit,
+    thermalLevel: ThermalLevel,
+    refreshRates: List<Int>,
+) {
+    var draft by remember(saved) { mutableStateOf(saved) }
+    Scaffold(
+        topBar = {
+            OqtTopAppBar(
+                title = {
+                    Column {
+                        Text(stringResource(R.string.global_profile))
+                        Text(stringResource(R.string.global_profile_subtitle), style = MaterialTheme.typography.bodySmall)
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+            )
+        },
+        bottomBar = {
+            Surface(tonalElevation = 3.dp) {
+                Row(
+                    Modifier.fillMaxWidth().padding(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(if (enabled) R.string.global_profile_enabled else R.string.global_profile_disabled),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    androidx.compose.material3.Switch(checked = enabled, onCheckedChange = onEnabledChange)
+                    Button(onClick = { onSave(draft) }, modifier = Modifier.heightIn(min = 40.dp)) {
+                        Text(stringResource(R.string.save))
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            Column(
+                Modifier.widthIn(max = 1000.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                ThermalBanner(thermalLevel)
+                InfoCard(stringResource(R.string.global_profile_explanation))
+                PresetRow(model = model, onSelect = { draft = it })
+                Settings(
+                    draft = draft,
+                    model = model,
+                    refreshRates = refreshRates,
+                    loweredToStep = null,
+                    onChange = { draft = it },
+                    onRateSelected = { selection -> draft = selection.profile },
+                )
+                Warnings(draft.warnings(model))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PresetRow(model: QuestModel, onSelect: (GameProfile) -> Unit, compact: Boolean = false, enabled: Boolean = true, selected: GameProfile? = null) {
+    if (compact) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            tunePresetProfiles(model).forEach { (label, profile) ->
+                FilterChip(selected = profile == selected, enabled = enabled, onClick = { onSelect(profile) },
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(50.dp), label = { Text(label, style = MaterialTheme.typography.labelMedium) })
+            }
+        }
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.quick_presets), style = MaterialTheme.typography.titleMedium)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            androidx.compose.material3.FilledTonalButton(onClick = {
+                onSelect(GameProfile(refreshRate = model.refreshRates.first(), eyeTexture = EyeTexture.forStep(model.defaultEyeTexture, 80), cpuLevel = model.cpuLevels.first, gpuLevel = model.gpuLevels.first, foveationLevel = FoveationLevel.HIGH, dynamicFoveation = true))
+            }) { Text(stringResource(R.string.preset_battery)) }
+            androidx.compose.material3.FilledTonalButton(onClick = {
+                onSelect(GameProfile(refreshRate = model.refreshRates.minByOrNull { kotlin.math.abs(it - 90) }, eyeTexture = model.defaultEyeTexture, cpuLevel = model.alwaysAvailableCpuMax, gpuLevel = model.alwaysAvailableGpuMax, foveationLevel = FoveationLevel.MEDIUM, dynamicFoveation = true))
+            }) { Text(stringResource(R.string.preset_balanced)) }
+            androidx.compose.material3.FilledTonalButton(onClick = {
+                onSelect(GameProfile(refreshRate = model.refreshRates.maxOrNull(), eyeTexture = model.defaultEyeTexture, cpuLevel = model.cpuLevels.last, gpuLevel = model.gpuLevels.last, foveationLevel = FoveationLevel.MEDIUM, dynamicFoveation = true))
+            }) { Text(stringResource(R.string.preset_performance)) }
+            androidx.compose.material3.FilledTonalButton(onClick = {
+                onSelect(GameProfile(refreshRate = model.refreshRates.minByOrNull { kotlin.math.abs(it - 90) }, eyeTexture = EyeTexture.forStep(model.defaultEyeTexture, 120), cpuLevel = model.alwaysAvailableCpuMax, gpuLevel = model.alwaysAvailableGpuMax, foveationLevel = FoveationLevel.MEDIUM, dynamicFoveation = true))
+            }) { Text("Quality") }
+            androidx.compose.material3.FilledTonalButton(onClick = {
+                onSelect(GameProfile(refreshRate = model.refreshRates.minByOrNull { kotlin.math.abs(it - 90) }, eyeTexture = EyeTexture.forStep(model.defaultEyeTexture, 130), cpuLevel = model.cpuLevels.last, gpuLevel = model.gpuLevels.last, foveationLevel = FoveationLevel.HIGH, dynamicFoveation = true))
+            }) { Text("HD+") }
+            androidx.compose.material3.FilledTonalButton(onClick = { onSelect(GameProfile()) }) { Text(stringResource(R.string.preset_game_default)) }
+        }
+    }
+}
+
+
+@Composable
+private fun CommunityRecommendationsCard(entries: List<CommunityProfile>, onPreview: (CommunityProfile) -> Unit, onInstall: (CommunityProfile) -> Unit) {
+    Card { Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Community recommendations", style = MaterialTheme.typography.titleLarge)
+        if (entries.isEmpty()) Text("No compatible downloaded recommendations for this game and headset yet.")
+        entries.take(6).forEach { entry ->
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(entry.name, style = MaterialTheme.typography.titleMedium); Text(if (entry.verified) "✓ Verified" else "Community") }
+                    Text("${entry.author} • rev ${entry.revision} • ${if (entry.ratingCount > 0) String.format("%.1f★ (%d)", entry.rating, entry.ratingCount) else "unrated"}")
+                    if (entry.description.isNotBlank()) Text(entry.description, style = MaterialTheme.typography.bodySmall)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) { OutlinedButton(onClick = { onPreview(entry) }) { Text("Preview") }; Button(onClick = { onInstall(entry) }) { Text("Install") } }
+                }
+            }
+        }
+    } }
 }

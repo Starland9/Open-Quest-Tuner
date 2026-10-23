@@ -21,8 +21,8 @@ fun ExperimentalBadge(modifier: Modifier = Modifier) {
     ) {
         Text(
             text = stringResource(R.string.experimental),
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
         )
     }
 }
